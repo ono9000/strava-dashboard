@@ -1,0 +1,165 @@
+/* shared-styles.css */
+
+vaadin-text-field, vaadin-password-field, vaadin-button {
+    margin-bottom: 15px;
+}
+
+vaadin-form-layout {
+    background-color: #f9f9f9;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+}
+
+vaadin-button {
+    background-color: #0078D4;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+}
+
+vaadin-button:hover {
+    background-color: #005a9c;
+}
+
+vaadin-notification {
+    font-size: 14px;
+    color: red;
+}
+
+/* Centrar formularios */
+vaadin-form-layout {
+    background-color: #f9f9f9;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+}
+
+/* Botón primario */
+vaadin-button {
+    background-color: #0078D4;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+}
+
+vaadin-button:hover {
+    background-color: #005a9c;
+}
+
+/* Estilos para la barra de navegación */
+vaadin-app-layout vaadin-drawer-toggle {
+    background-color: #0078D4;
+    color: white;
+}
+
+vaadin-drawer-toggle:hover {
+    background-color: #005a9c;
+}
+
+/* Estilo para las tarjetas del dashboard */
+.dashboard-card {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 200px;
+    text-align: center;
+    transition: transform 0.2s;
+    margin: 10px;
+}
+
+.dashboard-card:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+.dashboard-card vaadin-button {
+    margin-top: 10px;
+    background-color: #0078D4;
+    color: white;
+}
+
+.dashboard-card vaadin-button:hover {
+    background-color: #005a9c;
+}
+
+/* Sidebar - Enlaces */
+vaadin-vertical-layout a {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+    padding: 10px;
+}
+
+vaadin-vertical-layout a:hover {
+    background-color: #e0e0e0;
+}
+
+/* Estilos del Sidebar */
+.settings-button,
+.logout-button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+.settings-button:hover,
+.logout-button:hover {
+    background-color: #e0e0e0;
+}
+
+/* Ajustar tamaño del icono */
+.settings-button vaadin-icon,
+.logout-button vaadin-icon {
+    width: 24px;
+    height: 24px;
+}
+
+
+/* Estilo para las tarjetas de alerta */
+.alert-card {
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 250px;
+    text-align: center;
+    transition: transform 0.2s;
+    margin: 10px;
+}
+
+.alert-card:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+}
+
+/* Botón de detalles */
+.alert-card vaadin-button {
+    margin-top: 10px;
+    background-color: #0078D4;
+    color: white;
+}
+
+.alert-card vaadin-button:hover {
+    background-color: #005a9c;
+}
+
+/* Estilo para los detalles de alerta */
+.alert-detail {
+    text-align: center;
+    padding: 20px;
+}
+
+.alert-detail img {
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+
