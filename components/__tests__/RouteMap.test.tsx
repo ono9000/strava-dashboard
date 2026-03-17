@@ -1,4 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import { LanguageProvider } from '@/lib/i18n/client'
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: jest.fn() }),
+}))
 
 jest.mock('react-leaflet', () => ({
   MapContainer: ({ children }: { children: React.ReactNode }) => (
@@ -44,25 +49,54 @@ const makeActivity = (polyline: string | null): StravaSummaryActivity => ({
 })
 
 describe('RouteMap', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    localStorage.setItem('lang', 'es')
+  })
 
-  it('renders the map container when activities have polylines', () => {
-    render(<RouteMap activities={[makeActivity('encoded_data')]} />)
+  it('renders the map container when activities have polylines', async () => {
+    render(
+      <LanguageProvider initialLang="es">
+        <RouteMap activities={[makeActivity('encoded_data')]} />
+      </LanguageProvider>
+    )
     expect(screen.getByTestId('map-container')).toBeInTheDocument()
+
+    // Let async geocoding finish to avoid act warnings
+    await waitFor(() => {
+      expect(screen.queryByText(/Cargando ubicaciones/i)).not.toBeInTheDocument()
+    })
   })
 
   it('shows fallback when no activities have polylines', () => {
-    render(<RouteMap activities={[makeActivity(''), makeActivity(null)]} />)
+    render(
+      <LanguageProvider initialLang="es">
+        <RouteMap activities={[makeActivity(''), makeActivity(null)]} />
+      </LanguageProvider>
+    )
     expect(screen.getByText(/No hay rutas disponibles/i)).toBeInTheDocument()
   })
 
-  it('shows loading state while geocoding', () => {
-    render(<RouteMap activities={[makeActivity('encoded_data')]} />)
-    expect(screen.getByText(/Cargando/i)).toBeInTheDocument()
+  it('shows loading state while geocoding', async () => {
+    ;(global.fetch as jest.Mock).mockImplementationOnce(
+      () => new Promise(() => undefined) as unknown as Promise<Response>
+    )
+    render(
+      <LanguageProvider initialLang="es">
+        <RouteMap activities={[makeActivity('encoded_data')]} />
+      </LanguageProvider>
+    )
+    await waitFor(() => {
+      expect(screen.getByText(/Cargando/i)).toBeInTheDocument()
+    })
   })
 
   it('shows city name after geocoding resolves', async () => {
-    render(<RouteMap activities={[makeActivity('encoded_data')]} />)
+    render(
+      <LanguageProvider initialLang="es">
+        <RouteMap activities={[makeActivity('encoded_data')]} />
+      </LanguageProvider>
+    )
     await waitFor(() => {
       expect(screen.getByText('Madrid')).toBeInTheDocument()
     })

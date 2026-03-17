@@ -10,6 +10,7 @@ import { feature } from 'topojson-client'
 import type { Topology } from 'topojson-specification'
 import { GeoJSON } from 'react-leaflet'
 import isoCountries from 'i18n-iso-countries'
+import { useT } from '@/lib/i18n/client'
 
 interface Props {
   activities: StravaSummaryActivity[]
@@ -78,6 +79,8 @@ function FitBounds({ routes }: { routes: LatLngTuple[][] }) {
 }
 
 export default function RouteMap({ activities }: Props) {
+  const t = useT()
+  const unknown = t.routes.unknown
   const mapRef = useRef<LeafletMap | null>(null)
   const [locationTree, setLocationTree] = useState<CountryNode[]>([])
   const [geocoding, setGeocoding] = useState(false)
@@ -130,12 +133,12 @@ export default function RouteMap({ activities }: Props) {
             data.address?.town ||
             data.address?.village ||
             data.address?.municipality ||
-            'Desconocido',
-          country: data.address?.country || 'Desconocido',
+            unknown,
+          country: data.address?.country || unknown,
           countryCode: (data.address?.country_code || '??').toUpperCase(),
         })
       } catch {
-        geoMap.set(key, { city: 'Desconocido', country: 'Desconocido', countryCode: '??' })
+        geoMap.set(key, { city: unknown, country: unknown, countryCode: '??' })
       }
       if (i < uniquePoints.length - 1) await delay(1100)
     }
@@ -144,7 +147,7 @@ export default function RouteMap({ activities }: Props) {
     for (let i = 0; i < routes.length; i++) {
       const [lat, lng] = routes[i][0]
       const key = `${roundCoord(lat)},${roundCoord(lng)}`
-      const geo = geoMap.get(key) ?? { city: 'Desconocido', country: 'Desconocido', countryCode: '??' }
+      const geo = geoMap.get(key) ?? { city: unknown, country: unknown, countryCode: '??' }
 
       if (!countries.has(geo.country)) {
         countries.set(geo.country, { name: geo.country, code: geo.countryCode, cities: new Map() })
@@ -158,7 +161,7 @@ export default function RouteMap({ activities }: Props) {
 
     setLocationTree(Array.from(countries.values()))
     setGeocoding(false)
-  }, [routes])
+  }, [routes, unknown])
 
   useEffect(() => {
     geocodeRoutes()
@@ -167,7 +170,7 @@ export default function RouteMap({ activities }: Props) {
   if (routes.length === 0) {
     return (
       <p className="text-white/40 text-sm text-center py-8">
-        No hay rutas disponibles
+        {t.routes.noneAvailable}
       </p>
     )
   }
@@ -221,12 +224,12 @@ export default function RouteMap({ activities }: Props) {
 
       <div className="w-52 flex-shrink-0 bg-[#1a1a1a] border border-white/10 rounded-2xl p-3 overflow-y-auto">
         <p className="text-[10px] text-white/40 uppercase tracking-wider mb-2">
-          Zonas
+          {t.routes.zones}
         </p>
         {geocoding ? (
-          <p className="text-white/40 text-xs">Cargando ubicaciones…</p>
+          <p className="text-white/40 text-xs">{t.routes.loadingLocations}</p>
         ) : locationTree.length === 0 ? (
-          <p className="text-white/40 text-xs">Sin datos de ubicación</p>
+          <p className="text-white/40 text-xs">{t.routes.noLocationData}</p>
         ) : (
           locationTree.map((country) => {
             const allCountryIndices = Array.from(country.cities.values()).flatMap(

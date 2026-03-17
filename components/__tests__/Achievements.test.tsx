@@ -1,4 +1,10 @@
 import { render, screen } from '@testing-library/react'
+import { LanguageProvider } from '@/lib/i18n/client'
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: jest.fn() }),
+}))
+
 import Achievements from '../Achievements'
 import type { StravaActivityTotals, StravaSummaryActivity } from '@/types/strava'
 import type { PeriodBest } from '@/lib/calculations'
@@ -32,24 +38,30 @@ const bestMarks: { bestWeek: PeriodBest; bestMonth: PeriodBest; [key: string]: u
 describe('Achievements — badge progress', () => {
   it('shows "faltan X km" for a locked km badge', () => {
     // 150 km total — "Primeros 500 km" badge is locked, needs 350 more
+    localStorage.setItem('lang', 'es')
     render(
-      <Achievements
-        totals={baseTotals}
-        activities={[baseActivity]}
-        bestMarks={bestMarks}
-      />
+      <LanguageProvider initialLang="es">
+        <Achievements
+          totals={baseTotals}
+          activities={[baseActivity]}
+          bestMarks={bestMarks}
+        />
+      </LanguageProvider>
     )
     expect(screen.getByText(/faltan 350 km/i)).toBeInTheDocument()
   })
 
   it('does not show "faltan" text for an unlocked badge', () => {
     // 150 km — "Primeros 100 km" is unlocked
+    localStorage.setItem('lang', 'es')
     render(
-      <Achievements
-        totals={baseTotals}
-        activities={[baseActivity]}
-        bestMarks={bestMarks}
-      />
+      <LanguageProvider initialLang="es">
+        <Achievements
+          totals={baseTotals}
+          activities={[baseActivity]}
+          bestMarks={bestMarks}
+        />
+      </LanguageProvider>
     )
     // 100 km badge is unlocked — no "faltan" text for it
     const faltan100 = screen.queryByText(/faltan 0 km/i)

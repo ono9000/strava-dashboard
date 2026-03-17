@@ -1,4 +1,5 @@
 import type { StravaSummaryActivity } from '@/types/strava'
+import { DEFAULT_LANG, type Language } from '@/lib/i18n/types'
 
 export function formatPace(movingTimeSec: number, distanceMeters: number): string {
   if (distanceMeters === 0) return '—'
@@ -43,7 +44,11 @@ export function getBestForDistance(
   )
 }
 
-function getISOWeekKey(dateStr: string): { key: string; label: string } {
+function localeFor(lang: Language): string {
+  return lang === 'en' ? 'en-US' : 'es-ES'
+}
+
+function getISOWeekKey(dateStr: string, lang: Language): { key: string; label: string } {
   const d = new Date(dateStr)
   const day = d.getDay() || 7 // Sunday = 7
   const thursday = new Date(d)
@@ -56,9 +61,10 @@ function getISOWeekKey(dateStr: string): { key: string; label: string } {
       1) /
       7
   )
+  const weekWord = lang === 'en' ? 'Week' : 'Semana'
   return {
     key: `${year}-W${String(weekNum).padStart(2, '0')}`,
-    label: `Semana ${weekNum}, ${year}`,
+    label: `${weekWord} ${weekNum}, ${year}`,
   }
 }
 
@@ -67,11 +73,11 @@ export interface PeriodBest {
   label: string
 }
 
-export function getBestWeek(activities: StravaSummaryActivity[]): PeriodBest {
+export function getBestWeek(activities: StravaSummaryActivity[], lang: Language = DEFAULT_LANG): PeriodBest {
   if (activities.length === 0) return { totalKm: 0, label: '' }
   const byWeek: Record<string, { totalM: number; label: string }> = {}
   for (const a of activities) {
-    const { key, label } = getISOWeekKey(a.start_date_local)
+    const { key, label } = getISOWeekKey(a.start_date_local, lang)
     if (!byWeek[key]) byWeek[key] = { totalM: 0, label }
     byWeek[key].totalM += a.distance
   }
@@ -81,18 +87,13 @@ export function getBestWeek(activities: StravaSummaryActivity[]): PeriodBest {
   return { totalKm: best.totalM / 1000, label: best.label }
 }
 
-const MONTH_NAMES_ES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
-export function getBestMonth(activities: StravaSummaryActivity[]): PeriodBest {
+export function getBestMonth(activities: StravaSummaryActivity[], lang: Language = DEFAULT_LANG): PeriodBest {
   if (activities.length === 0) return { totalKm: 0, label: '' }
   const byMonth: Record<string, { totalM: number; label: string }> = {}
   for (const a of activities) {
     const d = new Date(a.start_date_local)
     const key = `${d.getFullYear()}-${d.getMonth()}`
-    const label = `${MONTH_NAMES_ES[d.getMonth()]} ${d.getFullYear()}`
+    const label = new Intl.DateTimeFormat(localeFor(lang), { month: 'long', year: 'numeric' }).format(d)
     if (!byMonth[key]) byMonth[key] = { totalM: 0, label }
     byMonth[key].totalM += a.distance
   }
@@ -168,11 +169,8 @@ export function getActivityHeatmap(
   return grid
 }
 
-const MONTH_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-
 export interface MonthlyKmData {
   month: number        // 0–11
-  label: string
   currentYear: number  // km
   prevYear: number     // km
 }
@@ -199,7 +197,6 @@ export function getMonthlyKm(
 
   return Array.from({ length: 12 }, (_, i) => ({
     month: i,
-    label: MONTH_SHORT[i],
     currentYear: current[i],
     prevYear: prev[i],
   }))
@@ -212,12 +209,20 @@ export interface TopPerf {
   sub: string
 }
 
-function fmtActivityDate(dateStr: string): string {
+export function fmtActivityDate(dateStr: string, lang: Language = DEFAULT_LANG): string {
   const d = new Date(dateStr)
-  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+  return d.toLocaleDateString(localeFor(lang), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function getTopPerformances(activities: StravaSummaryActivity[]): TopPerf[] {
+export function getTopPerformances(
+  activities: StravaSummaryActivity[],
+  opts?: {
+    lang?: Language
+    labels?: { longestRun: string; bestPace: string; mostElevation: string }
+  }
+): TopPerf[] {
+  const lang = opts?.lang ?? DEFAULT_LANG
+  const labels = opts?.labels
   const runs = activities.filter((a) => a.sport_type === 'Run')
   if (runs.length === 0) return []
 
@@ -227,9 +232,9 @@ export function getTopPerformances(activities: StravaSummaryActivity[]): TopPerf
   const longest = runs.reduce((best, a) => (a.distance > best.distance ? a : best))
   result.push({
     icon: '📏',
-    label: 'Carrera más larga',
+    label: labels?.longestRun ?? (lang === 'en' ? 'Longest run' : 'Carrera más larga'),
     value: `${(longest.distance / 1000).toFixed(1)} km`,
-    sub: `${longest.name} · ${fmtActivityDate(longest.start_date_local)}`,
+    sub: `${longest.name} · ${fmtActivityDate(longest.start_date_local, lang)}`,
   })
 
   // Best pace — fastest average pace among runs ≥ 5 km
@@ -240,9 +245,9 @@ export function getTopPerformances(activities: StravaSummaryActivity[]): TopPerf
     )
     result.push({
       icon: '⚡',
-      label: 'Mejor ritmo',
+      label: labels?.bestPace ?? (lang === 'en' ? 'Best pace' : 'Mejor ritmo'),
       value: formatPace(fastest.moving_time, fastest.distance),
-      sub: `${(fastest.distance / 1000).toFixed(1)} km · ${fmtActivityDate(fastest.start_date_local)}`,
+      sub: `${(fastest.distance / 1000).toFixed(1)} km · ${fmtActivityDate(fastest.start_date_local, lang)}`,
     })
   }
 
@@ -252,9 +257,9 @@ export function getTopPerformances(activities: StravaSummaryActivity[]): TopPerf
   )
   result.push({
     icon: '⛰️',
-    label: 'Más desnivel',
+    label: labels?.mostElevation ?? (lang === 'en' ? 'Most elevation' : 'Más desnivel'),
     value: `${Math.round(mostElev.total_elevation_gain)} m`,
-    sub: `${(mostElev.distance / 1000).toFixed(1)} km · ${fmtActivityDate(mostElev.start_date_local)}`,
+    sub: `${(mostElev.distance / 1000).toFixed(1)} km · ${fmtActivityDate(mostElev.start_date_local, lang)}`,
   })
 
   return result

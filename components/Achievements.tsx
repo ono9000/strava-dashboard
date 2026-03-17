@@ -1,5 +1,8 @@
+'use client'
+
 import type { StravaActivityTotals, StravaSummaryActivity } from '@/types/strava'
 import type { PeriodBest } from '@/lib/calculations'
+import { useT } from '@/lib/i18n/client'
 
 interface Props {
   totals: StravaActivityTotals
@@ -24,6 +27,7 @@ function Badge({
   threshold?: number
   currentKm?: number
 }) {
+  const t = useT()
   const showProgress =
     !unlocked &&
     threshold !== undefined &&
@@ -49,7 +53,7 @@ function Badge({
             />
           </div>
           <span className="text-[10px] text-white/40">
-            faltan {Math.ceil(threshold - currentKm)} km
+            {t.achievements.remainingKm(Math.ceil(threshold - currentKm))}
           </span>
         </div>
       )}
@@ -61,16 +65,17 @@ export default function Achievements({ totals, activities, bestMarks }: Props) {
   const totalKm   = totals.distance / 1000
   const hasHalf    = activities.some((a) => a.distance >= 20900)
   const hasMarathon = activities.some((a) => a.distance >= 42000)
+  const t = useT()
 
   const badges = [
-    { label: 'Primeros 100 km',       icon: '🌱', unlocked: totalKm >= 100,  threshold: 100 },
-    { label: 'Primeros 500 km',       icon: '⚡', unlocked: totalKm >= 500,  threshold: 500 },
-    { label: 'Primer 1.000 km',       icon: '🔥', unlocked: totalKm >= 1000, threshold: 1000 },
-    { label: 'Primeros 5.000 km',     icon: '🚀', unlocked: totalKm >= 5000, threshold: 5000 },
-    { label: 'Primera media maratón', icon: '🏅', unlocked: hasHalf },
-    { label: 'Primer maratón',        icon: '🏆', unlocked: hasMarathon },
-    { label: 'Semana récord',         icon: '📅', unlocked: bestMarks.bestWeek.totalKm > 0 },
-    { label: 'Mes récord',            icon: '📆', unlocked: bestMarks.bestMonth.totalKm > 0 },
+    { label: t.achievements.badges.first100,  icon: '🌱', unlocked: totalKm >= 100,  threshold: 100 },
+    { label: t.achievements.badges.first500,  icon: '⚡', unlocked: totalKm >= 500,  threshold: 500 },
+    { label: t.achievements.badges.first1000, icon: '🔥', unlocked: totalKm >= 1000, threshold: 1000 },
+    { label: t.achievements.badges.first5000, icon: '🚀', unlocked: totalKm >= 5000, threshold: 5000 },
+    { label: t.achievements.badges.firstHalf, icon: '🏅', unlocked: hasHalf },
+    { label: t.achievements.badges.firstMarathon, icon: '🏆', unlocked: hasMarathon },
+    { label: t.achievements.badges.recordWeek, icon: '📅', unlocked: bestMarks.bestWeek.totalKm > 0 },
+    { label: t.achievements.badges.recordMonth, icon: '📆', unlocked: bestMarks.bestMonth.totalKm > 0 },
   ]
 
   const unlockedCount = badges.filter((b) => b.unlocked).length
@@ -78,7 +83,7 @@ export default function Achievements({ totals, activities, bestMarks }: Props) {
   return (
     <section>
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-xs text-white/40 uppercase tracking-wider">Logros</h2>
+        <h2 className="text-xs text-white/40 uppercase tracking-wider">{t.achievements.title}</h2>
         <span className="text-xs text-white/40">{unlockedCount}/{badges.length}</span>
       </div>
       <div className="grid grid-cols-4 md:grid-cols-8 gap-3">

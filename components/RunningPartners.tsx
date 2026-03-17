@@ -1,10 +1,14 @@
+'use client'
+
 import type { SummaryAthlete } from '@/types/strava'
+import { useT } from '@/lib/i18n/client'
 
 interface RunningPartnersProps {
   partners: { athlete: SummaryAthlete; count: number }[]
 }
 
 export default function RunningPartners({ partners }: RunningPartnersProps) {
+  const t = useT()
   if (partners.length === 0) return null
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -25,7 +29,7 @@ export default function RunningPartners({ partners }: RunningPartnersProps) {
             {athlete.firstname} {athlete.lastname}
           </span>
           <span className="text-xs text-white/40">
-            {count} carrera{count === 1 ? '' : 's'} juntos
+            {t.partners.together(count)}
           </span>
         </div>
       ))}

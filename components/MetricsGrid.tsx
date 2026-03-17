@@ -1,3 +1,7 @@
+'use client'
+
+import { useT } from '@/lib/i18n/client'
+
 interface Metrics {
   totalKm: string
   totalActivities: number
@@ -21,18 +25,19 @@ function MetricCard({ label, value }: { label: string; value: string | number })
 }
 
 export default function MetricsGrid({ metrics }: Props) {
+  const t = useT()
   return (
     <section>
       <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-        Métricas de Running
+        {t.metrics.title}
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <MetricCard label="Kilómetros totales"   value={`${metrics.totalKm} km`} />
-        <MetricCard label="Actividades"           value={metrics.totalActivities} />
-        <MetricCard label="Tiempo entrenado"      value={metrics.totalTime} />
-        <MetricCard label="Desnivel acumulado"    value={metrics.elevation} />
-        <MetricCard label="Ritmo medio"           value={metrics.avgPace} />
-        <MetricCard label="Distancia media"       value={metrics.avgDistance} />
+        <MetricCard label={t.metrics.labels.totalKm} value={`${metrics.totalKm} km`} />
+        <MetricCard label={t.metrics.labels.activities} value={metrics.totalActivities} />
+        <MetricCard label={t.metrics.labels.totalTime} value={metrics.totalTime} />
+        <MetricCard label={t.metrics.labels.elevation} value={metrics.elevation} />
+        <MetricCard label={t.metrics.labels.avgPace} value={metrics.avgPace} />
+        <MetricCard label={t.metrics.labels.avgDistance} value={metrics.avgDistance} />
       </div>
     </section>
   )

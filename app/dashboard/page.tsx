@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { getLangFromCookies, getServerMessages } from '@/lib/i18n/server'
 import {
   getSession,
   getAthlete,
@@ -35,6 +36,9 @@ import RunningPartners from '@/components/RunningPartners'
 const RouteMap = dynamic(() => import('@/components/RouteMap'), { ssr: false })
 
 export default async function DashboardPage() {
+  const lang = getLangFromCookies()
+  const t = getServerMessages(lang)
+
   const session = getSession()
   if (!session) redirect('/')
 
@@ -57,8 +61,8 @@ export default async function DashboardPage() {
         (best, a) => (a.distance > (best?.distance ?? 0) ? a : best),
         null as (typeof activities)[0] | null
       ),
-      bestWeek:  getBestWeek(activities),
-      bestMonth: getBestMonth(activities),
+      bestWeek:  getBestWeek(activities, lang),
+      bestMonth: getBestMonth(activities, lang),
     }
 
     const yearlyChallenge = getYearlyChallenge(stats.ytd_run_totals.distance / 1000)
@@ -72,7 +76,7 @@ export default async function DashboardPage() {
       avgPace:         formatPace(totals.moving_time, totals.distance),
       avgDistance:     totals.count > 0
         ? `${(totalKm / totals.count).toFixed(1)} km`
-        : '—',
+        : t.common.dash,
     }
 
     const primarySport = getPrimarySport(activities)
@@ -113,7 +117,7 @@ export default async function DashboardPage() {
               href="/api/auth/logout"
               className="text-sm text-white/40 hover:text-white/70 transition-colors"
             >
-              Cerrar sesión
+              {t.dashboard.logout}
             </a>
           </div>
           <ProfileCard
@@ -125,20 +129,20 @@ export default async function DashboardPage() {
           <MetricsGrid metrics={metrics} />
           <section>
             <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-              Actividad
+              {t.dashboard.sections.activity}
             </h2>
             <ActivityHeatmap activities={activities} />
           </section>
           <section>
             <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-              Kilómetros por mes
+              {t.dashboard.sections.kmPerMonth}
             </h2>
             <MonthlyChart activities={activities} />
           </section>
           <BestMarks bestMarks={bestMarks} />
           <section>
             <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-              Mejores actuaciones
+              {t.dashboard.sections.bestPerformances}
             </h2>
             <TopPerformances activities={activities} />
           </section>
@@ -147,7 +151,7 @@ export default async function DashboardPage() {
           {hasSports && (
             <section>
               <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-                Otras actividades
+                {t.dashboard.sections.otherActivities}
               </h2>
               <SportBreakdown activities={activities} />
             </section>
@@ -155,14 +159,14 @@ export default async function DashboardPage() {
           {runningPartners.length > 0 && (
             <section>
               <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-                Compañeros de carrera
+                {t.dashboard.sections.runningPartners}
               </h2>
               <RunningPartners partners={runningPartners} />
             </section>
           )}
           <section>
             <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-              Tus Rutas
+              {t.dashboard.sections.routes}
             </h2>
             <RouteMap activities={activities} />
           </section>
@@ -174,13 +178,13 @@ export default async function DashboardPage() {
       return (
         <main className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center">
           <div className="text-center space-y-4">
-            <p className="text-xl font-bold">Strava está ocupado.</p>
-            <p className="text-white/60">Intenta de nuevo en unos minutos.</p>
+            <p className="text-xl font-bold">{t.dashboard.rateLimit.title}</p>
+            <p className="text-white/60">{t.dashboard.rateLimit.subtitle}</p>
             <a
               href="/dashboard"
               className="inline-block mt-4 px-6 py-2 bg-[#FC4C02] rounded-full text-sm font-semibold"
             >
-              Reintentar
+              {t.common.retry}
             </a>
           </div>
         </main>

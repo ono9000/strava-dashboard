@@ -1,12 +1,17 @@
+'use client'
+
 import { getTopPerformances } from '@/lib/calculations'
 import type { StravaSummaryActivity } from '@/types/strava'
+import { useLang, useT } from '@/lib/i18n/client'
 
 export default function TopPerformances({
   activities,
 }: {
   activities: StravaSummaryActivity[]
 }) {
-  const perfs = getTopPerformances(activities)
+  const { lang } = useLang()
+  const t = useT()
+  const perfs = getTopPerformances(activities, { lang, labels: t.topPerformances })
   if (perfs.length === 0) return null
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

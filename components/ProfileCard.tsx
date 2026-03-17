@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import type { StravaAthlete } from '@/types/strava'
 import type { YearlyChallengeState } from '@/lib/yearlyChallenge'
+import { useT } from '@/lib/i18n/client'
 
 interface Props {
   athlete: StravaAthlete
@@ -18,6 +19,7 @@ const HALF_CIRC = Math.PI * RING_RADIUS  // ≈ 138.23
 
 export default function ProfileCard({ athlete, primarySport, athleteSince, yearlyChallenge }: Props) {
   const [hovered, setHovered] = useState(false)
+  const t = useT()
 
   const location = [athlete.city, athlete.country].filter(Boolean).join(', ')
   const fullName = `${athlete.firstname} ${athlete.lastname}`
@@ -30,10 +32,10 @@ export default function ProfileCard({ athlete, primarySport, athleteSince, yearl
   const progressDash = yearlyChallenge.progress * HALF_CIRC
 
   const label = yearlyChallenge.allCompleted
-    ? '🏆 ¡Año completo!'
+    ? t.profile.yearlyComplete
     : hovered
-    ? `${Math.round(yearlyChallenge.ytdKm)} km / ${yearlyChallenge.nextMilestone} km`
-    : `${yearlyChallenge.icon} ${Math.round(yearlyChallenge.progress * 100)}% → ${yearlyChallenge.nextMilestone} km`
+    ? t.profile.yearlyProgressHover(yearlyChallenge.ytdKm, yearlyChallenge.nextMilestone)
+    : `${yearlyChallenge.icon} ${t.profile.yearlyProgress(Math.round(yearlyChallenge.progress * 100), yearlyChallenge.nextMilestone)}`
 
   return (
     <div
@@ -98,7 +100,7 @@ export default function ProfileCard({ athlete, primarySport, athleteSince, yearl
           {primarySport}
         </span>
         <span className="text-xs bg-white/10 rounded-full px-3 py-1 text-white/50">
-          Atleta desde {athleteSince}
+          {t.profile.athleteSince(athleteSince)}
         </span>
       </div>
 

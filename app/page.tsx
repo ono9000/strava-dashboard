@@ -1,4 +1,7 @@
+import { getServerMessages } from '@/lib/i18n/server'
+
 export default function LandingPage() {
+  const t = getServerMessages()
   return (
     <main className="min-h-screen bg-[#0f0f0f] text-white flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full text-center space-y-8">
@@ -10,9 +13,9 @@ export default function LandingPage() {
           </div>
           <h1 className="text-4xl font-bold tracking-tight">Strava Dashboard</h1>
           <p className="text-white/60 text-lg leading-relaxed">
-            Toda tu historia deportiva de un vistazo.
+            {t.landing.taglineLine1}
             <br />
-            Tus mejores marcas, tus logros, tu reto.
+            {t.landing.taglineLine2}
           </p>
         </div>
 
@@ -23,11 +26,11 @@ export default function LandingPage() {
           <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
             <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
           </svg>
-          Conectar con Strava
+          {t.landing.connect}
         </a>
 
         <p className="text-white/30 text-xs">
-          Solo lectura. Nunca publicamos en tu cuenta.
+          {t.landing.readOnly}
         </p>
       </div>
     </main>

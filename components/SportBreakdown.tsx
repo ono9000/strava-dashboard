@@ -1,11 +1,15 @@
+'use client'
+
 import { getSportBreakdown } from '@/lib/calculations'
 import type { StravaSummaryActivity } from '@/types/strava'
+import { useT } from '@/lib/i18n/client'
 
 export default function SportBreakdown({
   activities,
 }: {
   activities: StravaSummaryActivity[]
 }) {
+  const t = useT()
   const sports = getSportBreakdown(activities)
   if (sports.length === 0) return null
   return (
@@ -19,7 +23,7 @@ export default function SportBreakdown({
           <span className="text-white/80">{s.sportType}</span>
           <span className="text-white/30">·</span>
           <span className="text-white/60">
-            {s.count} {s.count === 1 ? 'vez' : 'veces'}
+            {t.sport.times(s.count)}
           </span>
           <span className="text-white/30">·</span>
           <span className="text-white/40">{s.totalHours.toFixed(1)} h</span>

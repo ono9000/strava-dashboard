@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { FunFacts } from '@/lib/calculations'
+import { useT } from '@/lib/i18n/client'
 
 interface Props {
   funFacts: FunFacts
@@ -10,26 +11,27 @@ interface Props {
 const FACT_COUNT = 4
 
 export default function FunFact({ funFacts }: Props) {
+  const t = useT()
   const facts = [
     {
       icon: '🚶',
-      text: 'Has recorrido el equivalente a',
-      highlight: `${funFacts.caminoLaps} veces el Camino de Santiago`,
+      text: t.funFact.facts.caminoText,
+      highlight: t.funFact.facts.caminoHighlight(funFacts.caminoLaps),
     },
     {
       icon: '🌋',
-      text: 'Has subido el equivalente a',
-      highlight: `${funFacts.teideLaps} veces el Teide`,
+      text: t.funFact.facts.teideText,
+      highlight: t.funFact.facts.teideHighlight(funFacts.teideLaps),
     },
     {
       icon: '🏃',
-      text: 'Has completado el equivalente a',
-      highlight: `${funFacts.marathons} maratones`,
+      text: t.funFact.facts.marathonsText,
+      highlight: t.funFact.facts.marathonsHighlight(funFacts.marathons),
     },
     {
       icon: '🌳',
-      text: 'Has dado',
-      highlight: `${funFacts.retiroLaps} vueltas al Parque del Retiro`,
+      text: t.funFact.facts.retiroText,
+      highlight: t.funFact.facts.retiroHighlight(funFacts.retiroLaps),
     },
   ]
 
@@ -68,7 +70,7 @@ export default function FunFact({ funFacts }: Props) {
   return (
     <section className="pb-10">
       <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
-        Dato Curioso
+        {t.funFact.title}
       </h2>
       <div
         className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6"

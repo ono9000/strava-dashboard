@@ -3,8 +3,7 @@
 import { useMemo } from 'react'
 import { getActivityHeatmap } from '@/lib/calculations'
 import type { StravaSummaryActivity } from '@/types/strava'
-
-const MONTH_SHORT_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+import { useLang, useT } from '@/lib/i18n/client'
 
 function cellColor(km: number): string {
   if (km === 0) return '#1a1a1a'
@@ -18,14 +17,17 @@ export default function ActivityHeatmap({
 }: {
   activities: StravaSummaryActivity[]
 }) {
+  const { lang } = useLang()
+  const t = useT()
   const grid = useMemo(() => getActivityHeatmap(activities), [activities])
+  const locale = lang === 'en' ? 'en-US' : 'es-ES'
 
   // Build month labels: show label at the first week whose Monday is in a new month
   const monthLabels: { label: string; col: number; year: number }[] = []
   for (let w = 0; w < 52; w++) {
     const d = new Date(grid[w][0].date + 'T12:00:00')
     if (d.getDate() <= 7) {
-      const label = MONTH_SHORT_ES[d.getMonth()]
+      const label = new Intl.DateTimeFormat(locale, { month: 'short' }).format(d)
       const last = monthLabels[monthLabels.length - 1]
       if (!last || last.label !== label || last.year !== d.getFullYear()) {
         monthLabels.push({ label, col: w, year: d.getFullYear() })
@@ -43,7 +45,7 @@ export default function ActivityHeatmap({
       <svg
         width={LEFT + 52 * (CELL + GAP)}
         height={TOP + 7 * (CELL + GAP) + 4}
-        aria-label="Actividad de las últimas 52 semanas"
+        aria-label={t.heatmap.ariaLabel}
       >
         {/* Month labels */}
         {monthLabels.map(({ label, col }) => (
@@ -58,7 +60,7 @@ export default function ActivityHeatmap({
           </text>
         ))}
         {/* Day labels (only odd rows to avoid crowding) */}
-        {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((lbl, row) =>
+        {t.heatmap.dayLetters.map((lbl, row) =>
           row % 2 === 1 ? (
             <text
               key={`d-${row}`}
@@ -74,15 +76,14 @@ export default function ActivityHeatmap({
         {/* Cells */}
         {grid.map((week, w) =>
           week.map((day, d) => {
-            const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('es-ES', {
+            const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString(locale, {
               day: 'numeric',
               month: 'short',
               year: 'numeric',
             })
-            const tooltip =
-              day.km > 0
-                ? `${day.km.toFixed(1)} km — ${dateLabel}`
-                : `Sin actividad — ${dateLabel}`
+            const tooltip = day.km > 0
+              ? t.heatmap.tooltip.withKm(day.km, dateLabel)
+              : t.heatmap.tooltip.noActivity(dateLabel)
             return (
               <rect
                 key={`${w}-${d}`}

@@ -119,9 +119,10 @@ describe('getBestMonth', () => {
       makeActivity({ id: 2, distance: 6000, start_date_local: '2024-01-20T09:00:00' }),
       makeActivity({ id: 3, distance: 8000, start_date_local: '2024-02-10T09:00:00' }),
     ]
-    const best = getBestMonth(activities)
+    const best = getBestMonth(activities, 'es')
     expect(best.totalKm).toBeCloseTo(11, 1)
-    expect(best.label).toBe('Enero 2024')
+    expect(best.label.toLowerCase()).toContain('enero')
+    expect(best.label).toContain('2024')
   })
 })
 

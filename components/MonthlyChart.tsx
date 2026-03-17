@@ -1,11 +1,15 @@
+'use client'
+
 import { getMonthlyKm } from '@/lib/calculations'
 import type { StravaSummaryActivity } from '@/types/strava'
+import { useLang } from '@/lib/i18n/client'
 
 export default function MonthlyChart({
   activities,
 }: {
   activities: StravaSummaryActivity[]
 }) {
+  const { lang } = useLang()
   const today = new Date()
   const currentYear = today.getFullYear()
   const prevYear = currentYear - 1
@@ -32,7 +36,7 @@ export default function MonthlyChart({
       viewBox={`0 0 ${VW} ${VH}`}
       preserveAspectRatio="xMidYMid meet"
       width="100%"
-      aria-label={`Kilómetros por mes ${prevYear} y ${currentYear}`}
+      aria-label={`${prevYear} / ${currentYear}`}
     >
       {/* Y-axis guide lines */}
       {[0.25, 0.5, 0.75, 1].map((frac) => {
@@ -66,6 +70,9 @@ export default function MonthlyChart({
         const prevH = (d.prevYear / maxKm) * CHART_H
         const currH = (d.currentYear / maxKm) * CHART_H
         const labelX = PAD_L + i * slotW + slotW / 2
+        const monthLabel = new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'es-ES', {
+          month: 'short',
+        }).format(new Date(2000, d.month, 1))
         return (
           <g key={i}>
             {d.prevYear > 0 && (
@@ -95,7 +102,7 @@ export default function MonthlyChart({
               fill="rgba(255,255,255,0.5)"
               textAnchor="middle"
             >
-              {d.label}
+              {monthLabel}
             </text>
           </g>
         )
