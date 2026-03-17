@@ -1,53 +1,70 @@
+'use client'
+
+import { useState } from 'react'
 import Image from 'next/image'
 import type { StravaAthlete } from '@/types/strava'
-import type { ChallengeState } from '@/lib/challenges'
+import type { YearlyChallengeState } from '@/lib/yearlyChallenge'
 
 interface Props {
   athlete: StravaAthlete
   primarySport: string
   athleteSince: string
-  challenge: ChallengeState
+  yearlyChallenge: YearlyChallengeState
 }
 
 const RING_SIZE = 96
 const RING_RADIUS = 44
-const CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS  // 276.46
+const HALF_CIRC = Math.PI * RING_RADIUS  // ≈ 138.23
 
-export default function ProfileCard({ athlete, primarySport, athleteSince, challenge }: Props) {
+export default function ProfileCard({ athlete, primarySport, athleteSince, yearlyChallenge }: Props) {
+  const [hovered, setHovered] = useState(false)
+
   const location = [athlete.city, athlete.country].filter(Boolean).join(', ')
   const fullName = `${athlete.firstname} ${athlete.lastname}`
-  const dashOffset = CIRCUMFERENCE * (1 - challenge.progress)
-  const ringColor = challenge.allCompleted ? '#FFD700' : '#FC4C02'
+  const ringColor = yearlyChallenge.allCompleted ? '#FFD700' : '#FC4C02'
+
+  // Top semi-circle path: sweep-flag=0 (counterclockwise) from left to right = top arc
+  const cx = RING_SIZE / 2
+  const cy = RING_SIZE / 2
+  const arcPath = `M ${cx - RING_RADIUS},${cy} A ${RING_RADIUS},${RING_RADIUS} 0 0,0 ${cx + RING_RADIUS},${cy}`
+  const progressDash = yearlyChallenge.progress * HALF_CIRC
+
+  const label = yearlyChallenge.allCompleted
+    ? '🏆 ¡Año completo!'
+    : hovered
+    ? `${Math.round(yearlyChallenge.ytdKm)} km / ${yearlyChallenge.nextMilestone} km`
+    : `${yearlyChallenge.icon} ${Math.round(yearlyChallenge.progress * 100)}% → ${yearlyChallenge.nextMilestone} km`
 
   return (
-    <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 flex flex-col items-center text-center gap-3">
-
-      {/* Photo with SVG ring overlay */}
+    <div
+      className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 flex flex-col items-center text-center gap-3"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Photo with top semi-circle SVG ring */}
       <div className="relative flex-shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
         <svg
           width={RING_SIZE}
           height={RING_SIZE}
           style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}
         >
-          <circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
+          {/* Background track */}
+          <path
+            d={arcPath}
             fill="none"
             stroke="#333"
             strokeWidth={5}
+            strokeLinecap="round"
           />
-          <circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
+          {/* Progress arc */}
+          <path
+            d={arcPath}
             fill="none"
             stroke={ringColor}
             strokeWidth={5}
-            strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={dashOffset}
             strokeLinecap="round"
-            transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+            strokeDasharray={`${progressDash} ${HALF_CIRC}`}
+            strokeDashoffset={0}
           />
         </svg>
         <div
@@ -85,17 +102,13 @@ export default function ProfileCard({ athlete, primarySport, athleteSince, chall
         </span>
       </div>
 
-      {/* Challenge progress label */}
-      {challenge.allCompleted ? (
-        <p className="text-sm font-bold" style={{ color: '#FFD700' }}>
-          🏆 ¡Ruta completa!
-        </p>
-      ) : (
-        <p className="text-sm font-bold" style={{ color: '#FC4C02' }}>
-          {Math.round(challenge.progress * 100)}% → {challenge.current.destination}
-        </p>
-      )}
-
+      {/* Yearly challenge label — toggles on hover */}
+      <p
+        className="text-sm font-bold transition-all duration-200"
+        style={{ color: yearlyChallenge.allCompleted ? '#FFD700' : '#FC4C02' }}
+      >
+        {label}
+      </p>
     </div>
   )
 }
