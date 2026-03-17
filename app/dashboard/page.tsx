@@ -5,6 +5,7 @@ import {
   getAthlete,
   getAthleteStats,
   getAllActivities,
+  getActivityKudos,
   StravaRateLimitError,
 } from '@/lib/strava'
 import {
@@ -16,13 +17,20 @@ import {
   getBestWeek,
   getBestMonth,
   computeFunFacts,
+  getSportBreakdown,
 } from '@/lib/calculations'
 import { getYearlyChallenge } from '@/lib/yearlyChallenge'
+import type { SummaryAthlete } from '@/types/strava'
 import ProfileCard from '@/components/ProfileCard'
 import MetricsGrid from '@/components/MetricsGrid'
 import BestMarks from '@/components/BestMarks'
 import Achievements from '@/components/Achievements'
 import FunFact from '@/components/FunFact'
+import ActivityHeatmap from '@/components/ActivityHeatmap'
+import MonthlyChart from '@/components/MonthlyChart'
+import TopPerformances from '@/components/TopPerformances'
+import SportBreakdown from '@/components/SportBreakdown'
+import RunningPartners from '@/components/RunningPartners'
 
 const RouteMap = dynamic(() => import('@/components/RouteMap'), { ssr: false })
 
@@ -70,6 +78,33 @@ export default async function DashboardPage() {
     const primarySport = getPrimarySport(activities)
     const athleteSince = new Date(athlete.created_at).getFullYear().toString()
 
+    // Running partners — gracefully degrades to [] if any kudos request fails
+    const groupRuns = activities
+      .filter((a) => a.sport_type === 'Run' && (a.athlete_count ?? 1) > 1)
+      .slice(0, 10)
+
+    let runningPartners: { athlete: SummaryAthlete; count: number }[] = []
+    try {
+      const kudosLists = await Promise.all(
+        groupRuns.map((a) => getActivityKudos(session.access_token, a.id))
+      )
+      const partnerMap = new Map<number, { athlete: SummaryAthlete; count: number }>()
+      for (const kudosList of kudosLists) {
+        for (const a of kudosList) {
+          const entry = partnerMap.get(a.id)
+          if (entry) entry.count++
+          else partnerMap.set(a.id, { athlete: a, count: 1 })
+        }
+      }
+      runningPartners = Array.from(partnerMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+    } catch {
+      // silently degrade — section will be hidden
+    }
+
+    const hasSports = getSportBreakdown(activities).length > 0
+
     return (
       <main className="min-h-screen bg-[#0f0f0f] text-white">
         <div className="mx-auto max-w-5xl px-4 py-10 space-y-8">
@@ -88,9 +123,43 @@ export default async function DashboardPage() {
             yearlyChallenge={yearlyChallenge}
           />
           <MetricsGrid metrics={metrics} />
+          <section>
+            <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
+              Actividad
+            </h2>
+            <ActivityHeatmap activities={activities} />
+          </section>
+          <section>
+            <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
+              Kilómetros por mes
+            </h2>
+            <MonthlyChart activities={activities} />
+          </section>
           <BestMarks bestMarks={bestMarks} />
+          <section>
+            <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
+              Mejores actuaciones
+            </h2>
+            <TopPerformances activities={activities} />
+          </section>
           <Achievements totals={totals} activities={activities} bestMarks={bestMarks} />
           <FunFact funFacts={funFacts} />
+          {hasSports && (
+            <section>
+              <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
+                Otras actividades
+              </h2>
+              <SportBreakdown activities={activities} />
+            </section>
+          )}
+          {runningPartners.length > 0 && (
+            <section>
+              <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
+                Compañeros de carrera
+              </h2>
+              <RunningPartners partners={runningPartners} />
+            </section>
+          )}
           <section>
             <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
               Tus Rutas
