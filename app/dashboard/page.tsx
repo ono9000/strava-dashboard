@@ -17,11 +17,10 @@ import {
   getBestMonth,
   computeFunFacts,
 } from '@/lib/calculations'
-import { getCurrentChallenge } from '@/lib/challenges'
+import { getYearlyChallenge } from '@/lib/yearlyChallenge'
 import ProfileCard from '@/components/ProfileCard'
 import MetricsGrid from '@/components/MetricsGrid'
 import BestMarks from '@/components/BestMarks'
-import ChallengeBar from '@/components/ChallengeBar'
 import Achievements from '@/components/Achievements'
 import FunFact from '@/components/FunFact'
 
@@ -54,7 +53,7 @@ export default async function DashboardPage() {
       bestMonth: getBestMonth(activities),
     }
 
-    const challenge = getCurrentChallenge(totalKm)
+    const yearlyChallenge = getYearlyChallenge(stats.ytd_run_totals.distance / 1000)
     const funFacts  = computeFunFacts(totalKm, totals.elevation_gain)
 
     const metrics = {
@@ -86,11 +85,10 @@ export default async function DashboardPage() {
             athlete={athlete}
             primarySport={primarySport}
             athleteSince={athleteSince}
-            challenge={challenge}
+            yearlyChallenge={yearlyChallenge}
           />
           <MetricsGrid metrics={metrics} />
           <BestMarks bestMarks={bestMarks} />
-          <ChallengeBar challenge={challenge} />
           <Achievements totals={totals} activities={activities} bestMarks={bestMarks} />
           <FunFact funFacts={funFacts} />
           <section>
