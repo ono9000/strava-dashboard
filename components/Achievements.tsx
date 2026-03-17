@@ -1,8 +1,6 @@
 import type { StravaActivityTotals, StravaSummaryActivity } from '@/types/strava'
 import type { PeriodBest } from '@/lib/calculations'
 
-// Props include the full bestMarks object — only bestWeek and bestMonth are used here.
-// The broader type keeps the call site in dashboard/page.tsx clean (no destructuring needed).
 interface Props {
   totals: StravaActivityTotals
   activities: StravaSummaryActivity[]
@@ -13,7 +11,25 @@ interface Props {
   }
 }
 
-function Badge({ label, icon, unlocked }: { label: string; icon: string; unlocked: boolean }) {
+function Badge({
+  label,
+  icon,
+  unlocked,
+  threshold,
+  currentKm,
+}: {
+  label: string
+  icon: string
+  unlocked: boolean
+  threshold?: number
+  currentKm?: number
+}) {
+  const showProgress =
+    !unlocked &&
+    threshold !== undefined &&
+    currentKm !== undefined &&
+    currentKm < threshold
+
   return (
     <div
       className={`bg-[#1a1a1a] border rounded-2xl p-3 flex flex-col items-center gap-2 text-center ${
@@ -24,6 +40,19 @@ function Badge({ label, icon, unlocked }: { label: string; icon: string; unlocke
     >
       <span className="text-2xl">{unlocked ? icon : '🔒'}</span>
       <span className="text-xs font-medium text-white leading-tight">{label}</span>
+      {showProgress && (
+        <div className="w-full space-y-1">
+          <div className="w-full h-[3px] bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#FC4C02] rounded-full"
+              style={{ width: `${Math.min((currentKm / threshold) * 100, 100)}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-white/40">
+            faltan {Math.ceil(threshold - currentKm)} km
+          </span>
+        </div>
+      )}
     </div>
   )
 }
@@ -34,10 +63,10 @@ export default function Achievements({ totals, activities, bestMarks }: Props) {
   const hasMarathon = activities.some((a) => a.distance >= 42000)
 
   const badges = [
-    { label: 'Primeros 100 km',       icon: '🌱', unlocked: totalKm >= 100 },
-    { label: 'Primeros 500 km',       icon: '⚡', unlocked: totalKm >= 500 },
-    { label: 'Primer 1.000 km',       icon: '🔥', unlocked: totalKm >= 1000 },
-    { label: 'Primeros 5.000 km',     icon: '🚀', unlocked: totalKm >= 5000 },
+    { label: 'Primeros 100 km',       icon: '🌱', unlocked: totalKm >= 100,  threshold: 100 },
+    { label: 'Primeros 500 km',       icon: '⚡', unlocked: totalKm >= 500,  threshold: 500 },
+    { label: 'Primer 1.000 km',       icon: '🔥', unlocked: totalKm >= 1000, threshold: 1000 },
+    { label: 'Primeros 5.000 km',     icon: '🚀', unlocked: totalKm >= 5000, threshold: 5000 },
     { label: 'Primera media maratón', icon: '🏅', unlocked: hasHalf },
     { label: 'Primer maratón',        icon: '🏆', unlocked: hasMarathon },
     { label: 'Semana récord',         icon: '📅', unlocked: bestMarks.bestWeek.totalKm > 0 },
@@ -54,7 +83,7 @@ export default function Achievements({ totals, activities, bestMarks }: Props) {
       </div>
       <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
         {badges.map((b) => (
-          <Badge key={b.label} {...b} />
+          <Badge key={b.label} {...b} currentKm={totalKm} />
         ))}
       </div>
     </section>
