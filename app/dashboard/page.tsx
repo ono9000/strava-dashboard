@@ -83,6 +83,7 @@ export default async function DashboardPage() {
             athlete={athlete}
             primarySport={primarySport}
             athleteSince={athleteSince}
+            challenge={challenge}
           />
           <MetricsGrid metrics={metrics} />
           <BestMarks bestMarks={bestMarks} />
