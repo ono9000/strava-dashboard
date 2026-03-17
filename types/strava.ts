@@ -36,6 +36,9 @@ export interface StravaSummaryActivity {
   sport_type: string       // 'Run', 'Ride', 'Walk', etc.
   start_date: string       // UTC ISO8601
   start_date_local: string // Local timezone ISO8601
+  map: {
+    summary_polyline: string   // Google Encoded Polyline; empty string if private/no GPS
+  } | null
 }
 
 // Session data stored in the httpOnly cookie

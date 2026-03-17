@@ -22,6 +22,7 @@ const makeActivity = (
   sport_type: 'Run',
   start_date: '2024-01-15T08:00:00Z',
   start_date_local: '2024-01-15T09:00:00+01:00',
+  map: null,
   ...overrides,
 })
 
