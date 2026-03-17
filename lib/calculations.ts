@@ -287,7 +287,7 @@ export function getSportBreakdown(activities: StravaSummaryActivity[]): SportSum
       map.set(a.sport_type, { count: 1, totalTime: a.moving_time })
     }
   }
-  return [...map.entries()]
+  return Array.from(map.entries())
     .sort((a, b) => b[1].count - a[1].count)
     .map(([sportType, { count, totalTime }]) => ({
       sportType,
