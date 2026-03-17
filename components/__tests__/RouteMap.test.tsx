@@ -1,6 +1,5 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 
-// Mock react-leaflet — the map itself is not testable in jsdom
 jest.mock('react-leaflet', () => ({
   MapContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="map-container">{children}</div>
@@ -16,6 +15,16 @@ jest.mock('@mapbox/polyline', () => ({
     return [[40.4, -3.7], [41.4, -2.7]]
   },
 }))
+
+global.fetch = jest.fn().mockResolvedValue({
+  json: async () => ({
+    address: {
+      city: 'Madrid',
+      country: 'España',
+      country_code: 'es',
+    },
+  }),
+}) as jest.Mock
 
 import RouteMap from '../RouteMap'
 import type { StravaSummaryActivity } from '@/types/strava'
@@ -34,18 +43,27 @@ const makeActivity = (polyline: string | null): StravaSummaryActivity => ({
 })
 
 describe('RouteMap', () => {
-  it('renders the map when activities have polylines', () => {
-    const activities = [makeActivity('encoded_polyline_data')]
-    render(<RouteMap activities={activities} />)
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders the map container when activities have polylines', () => {
+    render(<RouteMap activities={[makeActivity('encoded_data')]} />)
     expect(screen.getByTestId('map-container')).toBeInTheDocument()
   })
 
-  it('shows fallback text when no activities have polylines', () => {
-    const activities = [
-      makeActivity(''),      // empty polyline (private activity)
-      makeActivity(null),    // null map
-    ]
-    render(<RouteMap activities={activities} />)
+  it('shows fallback when no activities have polylines', () => {
+    render(<RouteMap activities={[makeActivity(''), makeActivity(null)]} />)
     expect(screen.getByText(/No hay rutas disponibles/i)).toBeInTheDocument()
+  })
+
+  it('shows loading state while geocoding', () => {
+    render(<RouteMap activities={[makeActivity('encoded_data')]} />)
+    expect(screen.getByText(/Cargando/i)).toBeInTheDocument()
+  })
+
+  it('shows city name after geocoding resolves', async () => {
+    render(<RouteMap activities={[makeActivity('encoded_data')]} />)
+    await waitFor(() => {
+      expect(screen.getByText('Madrid')).toBeInTheDocument()
+    })
   })
 })
