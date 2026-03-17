@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(npx:*)",
+      "Read(//c/Users/onofr/**)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(cp:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(cat:*)",
+      "Bash(npm run:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.strava.com)",
+      "Bash(npm test:*)",
+      "Bash(find:*)",
+      "Bash(gh auth:*)"
+    ]
+  }
+}
