@@ -1,10 +1,15 @@
 'use client'
 
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet'
 import polyline from '@mapbox/polyline'
 import type { Map as LeafletMap, LatLngTuple } from 'leaflet'
 import type { StravaSummaryActivity } from '@/types/strava'
+import worldData from 'world-atlas/countries-110m.json'
+import { feature } from 'topojson-client'
+import type { Topology } from 'topojson-specification'
+import { GeoJSON } from 'react-leaflet'
+import isoCountries from 'i18n-iso-countries'
 
 interface Props {
   activities: StravaSummaryActivity[]
@@ -35,8 +40,17 @@ function flagEmoji(code: string): string {
     .join('')
 }
 
+function getVisitedNumericIds(countryCodes: string[]): Set<string> {
+  const ids = new Set<string>()
+  for (const code of countryCodes) {
+    const numeric = isoCountries.alpha2ToNumeric(code.toUpperCase())
+    if (numeric) ids.add(numeric)
+  }
+  return ids
+}
+
 function roundCoord(n: number): number {
-  return Math.round(n * 10) / 10
+  return Math.round(n * 100) / 100
 }
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
@@ -72,6 +86,21 @@ export default function RouteMap({ activities }: Props) {
     .filter((a) => a.map?.summary_polyline)
     .map((a) => polyline.decode(a.map!.summary_polyline) as LatLngTuple[])
     .filter((r) => r.length > 0)
+
+  const visitedGeoJSON = useMemo(() => {
+    if (locationTree.length === 0) return null
+    const visitedIds = getVisitedNumericIds(locationTree.map((c) => c.code))
+    const allCountries = feature(
+      worldData as unknown as Topology,
+      (worldData as any).objects.countries
+    ) as any
+    return {
+      ...allCountries,
+      features: (allCountries.features as any[]).filter(
+        (f: any) => typeof f.id !== 'undefined' && visitedIds.has(String(f.id))
+      ),
+    }
+  }, [locationTree])
 
   const geocodeRoutes = useCallback(async () => {
     if (routes.length === 0) return
@@ -164,6 +193,18 @@ export default function RouteMap({ activities }: Props) {
           />
           <MapController mapRef={mapRef} />
           <FitBounds routes={routes} />
+          {visitedGeoJSON && (
+            <GeoJSON
+              key={JSON.stringify(visitedGeoJSON.features.map((f: any) => f.id))}
+              data={visitedGeoJSON as any}
+              style={() => ({
+                fillColor: '#FC4C02',
+                fillOpacity: 0.15,
+                color: 'transparent',
+                weight: 0,
+              })}
+            />
+          )}
           {routes.map((positions, i) => (
             <Polyline
               key={i}

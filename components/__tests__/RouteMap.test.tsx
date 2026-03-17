@@ -6,6 +6,7 @@ jest.mock('react-leaflet', () => ({
   ),
   TileLayer: () => <div data-testid="tile-layer" />,
   Polyline: () => <div data-testid="polyline" />,
+  GeoJSON: () => <div data-testid="geojson-layer" />,
   useMap: () => ({ fitBounds: jest.fn() }),
 }))
 
