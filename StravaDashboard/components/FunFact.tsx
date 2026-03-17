@@ -38,6 +38,7 @@ export default function FunFact({ funFacts }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const startInterval = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
     intervalRef.current = setInterval(() => {
       setVisible(false)
       setTimeout(() => {
