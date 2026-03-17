@@ -21,14 +21,14 @@ export default function ActivityHeatmap({
   const grid = useMemo(() => getActivityHeatmap(activities), [activities])
 
   // Build month labels: show label at the first week whose Monday is in a new month
-  const monthLabels: { label: string; col: number }[] = []
+  const monthLabels: { label: string; col: number; year: number }[] = []
   for (let w = 0; w < 52; w++) {
-    const d = new Date(grid[w][0].date)
+    const d = new Date(grid[w][0].date + 'T12:00:00')
     if (d.getDate() <= 7) {
       const label = MONTH_SHORT_ES[d.getMonth()]
       const last = monthLabels[monthLabels.length - 1]
-      if (!last || last.label !== label) {
-        monthLabels.push({ label, col: w })
+      if (!last || last.label !== label || last.year !== d.getFullYear()) {
+        monthLabels.push({ label, col: w, year: d.getFullYear() })
       }
     }
   }
