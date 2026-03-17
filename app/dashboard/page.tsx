@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import {
   getSession,
   getAthlete,
@@ -23,6 +24,8 @@ import BestMarks from '@/components/BestMarks'
 import ChallengeBar from '@/components/ChallengeBar'
 import Achievements from '@/components/Achievements'
 import FunFact from '@/components/FunFact'
+
+const RouteMap = dynamic(() => import('@/components/RouteMap'), { ssr: false })
 
 export default async function DashboardPage() {
   const session = getSession()
@@ -90,6 +93,12 @@ export default async function DashboardPage() {
           <ChallengeBar challenge={challenge} />
           <Achievements totals={totals} activities={activities} bestMarks={bestMarks} />
           <FunFact funFacts={funFacts} />
+          <section>
+            <h2 className="text-xs text-white/40 uppercase tracking-wider mb-3">
+              Tus Rutas
+            </h2>
+            <RouteMap activities={activities} />
+          </section>
         </div>
       </main>
     )
