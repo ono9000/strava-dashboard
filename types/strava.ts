@@ -36,6 +36,7 @@ export interface StravaSummaryActivity {
   sport_type: string       // 'Run', 'Ride', 'Walk', etc.
   start_date: string       // UTC ISO8601
   start_date_local: string // Local timezone ISO8601
+  athlete_count?: number  // number of athletes in the activity; >1 means group run
   map: {
     summary_polyline: string   // Google Encoded Polyline; empty string if private/no GPS
   } | null
@@ -55,4 +56,11 @@ export interface StravaTokenResponse {
   refresh_token: string
   expires_at: number
   athlete?: StravaAthlete
+}
+
+export interface SummaryAthlete {
+  id: number
+  firstname: string
+  lastname: string
+  profile: string  // photo URL
 }

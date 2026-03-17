@@ -4,6 +4,7 @@ import type {
   StravaStats,
   StravaSummaryActivity,
   StravaSession,
+  SummaryAthlete,
 } from '@/types/strava'
 
 const BASE = 'https://www.strava.com/api/v3'
@@ -75,4 +76,14 @@ export async function getAllActivities(
   }
 
   return allActivities
+}
+
+export async function getActivityKudos(
+  token: string,
+  activityId: number
+): Promise<SummaryAthlete[]> {
+  return stravaFetch<SummaryAthlete[]>(
+    `/activities/${activityId}/kudos?per_page=200`,
+    token
+  )
 }
