@@ -90,13 +90,13 @@ export default function RouteMap({ activities }: Props) {
   const visitedGeoJSON = useMemo(() => {
     if (locationTree.length === 0) return null
     const visitedIds = getVisitedNumericIds(locationTree.map((c) => c.code))
-    const allCountries = feature(
-      worldData as unknown as Topology,
-      (worldData as any).objects.countries
-    ) as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const allCountries = feature(worldData as unknown as Topology, (worldData as any).objects.countries) as any
     return {
       ...allCountries,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       features: (allCountries.features as any[]).filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (f: any) => typeof f.id !== 'undefined' && visitedIds.has(String(f.id))
       ),
     }
@@ -195,7 +195,9 @@ export default function RouteMap({ activities }: Props) {
           <FitBounds routes={routes} />
           {visitedGeoJSON && (
             <GeoJSON
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               key={JSON.stringify(visitedGeoJSON.features.map((f: any) => f.id))}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               data={visitedGeoJSON as any}
               style={() => ({
                 fillColor: '#FC4C02',
