@@ -2,6 +2,7 @@
 
 import type { SummaryAthlete } from '@/types/strava'
 import { useT } from '@/lib/i18n/client'
+import AthleteAvatar from '@/components/AthleteAvatar'
 
 interface RunningPartnersProps {
   partners: { athlete: SummaryAthlete; count: number }[]
@@ -17,13 +18,10 @@ export default function RunningPartners({ partners }: RunningPartnersProps) {
           key={athlete.id}
           className="bg-[#1a1a1a] rounded-2xl p-4 flex flex-col items-center gap-2"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <AthleteAvatar
             src={athlete.profile}
-            alt={`${athlete.firstname} ${athlete.lastname}`}
-            width={48}
-            height={48}
-            className="rounded-full object-cover"
+            name={`${athlete.firstname} ${athlete.lastname}`}
+            size={48}
           />
           <span className="text-sm font-semibold text-white">
             {athlete.firstname} {athlete.lastname}
