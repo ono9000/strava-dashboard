@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import type { StravaAthlete } from '@/types/strava'
+import AthleteAvatar from '@/components/AthleteAvatar'
 import type { YearlyChallengeState } from '@/lib/yearlyChallenge'
 import { useT } from '@/lib/i18n/client'
 
@@ -69,22 +69,8 @@ export default function ProfileCard({ athlete, primarySport, athleteSince, yearl
             strokeDashoffset={0}
           />
         </svg>
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            width: 76,
-            height: 76,
-          }}
-        >
-          <Image
-            src={athlete.profile}
-            alt={fullName}
-            fill
-            className="rounded-full object-cover"
-            unoptimized
-          />
+        <div style={{ position: 'absolute', top: 10, left: 10 }}>
+          <AthleteAvatar src={athlete.profile} name={fullName} size={76} />
         </div>
       </div>
 
