@@ -11,8 +11,8 @@ export async function middleware(request: NextRequest) {
       return request.cookies.getAll()
     },
     setAll(cookiesToSet) {
-      cookiesToSet.forEach(({ name, value }) =>
-        request.cookies.set(name, value)
+      cookiesToSet.forEach(({ name, value, options }) =>
+        request.cookies.set(name, value, options)
       )
       supabaseResponse = NextResponse.next({ request })
       cookiesToSet.forEach(({ name, value, options }) =>
@@ -36,7 +36,11 @@ export async function middleware(request: NextRequest) {
 
   const redirectTo = getRedirectPath(!!user, onboardingComplete, pathname)
   if (redirectTo) {
-    return NextResponse.redirect(new URL(redirectTo, request.url))
+    const redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url))
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    return redirectResponse
   }
 
   return supabaseResponse

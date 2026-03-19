@@ -34,4 +34,8 @@ describe('getRedirectPath', () => {
     expect(getRedirectPath(true, true, '/dashboard')).toBeNull()
     expect(getRedirectPath(true, true, '/wardrobe')).toBeNull()
   })
+
+  it('redirects authenticated + onboarded user away from /onboarding to /dashboard', () => {
+    expect(getRedirectPath(true, true, '/onboarding')).toBe('/dashboard')
+  })
 })

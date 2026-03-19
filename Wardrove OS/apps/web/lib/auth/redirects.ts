@@ -13,6 +13,7 @@ export function getRedirectPath(
 
   if (!hasSession && !isPublic) return '/login'
   if (hasSession && onboardingComplete && isPublic) return '/dashboard'
+  if (hasSession && onboardingComplete && currentPath === '/onboarding') return '/dashboard'
   if (hasSession && !onboardingComplete && currentPath !== '/onboarding') return '/onboarding'
   return null
 }
