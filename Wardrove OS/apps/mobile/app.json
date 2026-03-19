@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Wardrobe OS",
+    "slug": "wardrobe-os",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "wardrobe-os",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.wardrobeos.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.wardrobeos.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Wardrobe OS to use your location for weather-based outfit suggestions."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
