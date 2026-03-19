@@ -57,7 +57,7 @@ export interface ClothingItem {
   color_secondary: string | null
   pattern: string | null
   material: string | null
-  formality: number
+  formality: 1 | 2 | 3 | 4 | 5
   warmth_level: number
   style_tags: string[]
   season: string[]
@@ -106,7 +106,7 @@ export interface ClothingDetectionResult {
   color_secondary: string | null
   pattern: string | null
   material: string | null
-  formality: number
+  formality: 1 | 2 | 3 | 4 | 5
   warmth_level: number
   style_tags: string[]
 }
@@ -120,10 +120,10 @@ export interface OutfitRecommendation {
 export interface OutfitContext {
   available_items: Pick<
     ClothingItem,
-    'id' | 'category' | 'color_primary' | 'formality' | 'style_tags' | 'warmth_level' | 'total_wears' | 'last_worn_at'
+    'id' | 'category' | 'color_primary' | 'formality' | 'style_tags' | 'warmth_level' | 'total_wears' | 'last_worn_at' | 'season'
   >[]
   occasion: Occasion
   weather: WeatherCache | null
-  wear_history: Array<{ worn_at: string; occasion: string | null; item_ids: string[] }>
+  wear_history: Array<{ worn_at: string; occasion: Occasion | null; item_ids: string[] }>
   style_preferences: StylePreferences | null
 }
