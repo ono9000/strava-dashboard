@@ -2,7 +2,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient()
-  const { data: profile } = await supabase.from('users').select('name').single()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = await supabase
+    .from('users')
+    .select('name')
+    .eq('id', user?.id ?? '')
+    .single()
 
   return (
     <div className="space-y-6">
