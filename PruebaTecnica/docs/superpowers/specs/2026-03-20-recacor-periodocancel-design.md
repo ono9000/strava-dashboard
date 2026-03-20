@@ -25,65 +25,112 @@ Nuevo módulo PrestaShop: **`recacor_periodocancel`**
 
 ```
 recacor_periodocancel/
-  recacor_periodocancel.php       ← módulo principal (install, hooks)
+  recacor_periodocancel.php       ← módulo principal (install, hooks, config page)
+  config.xml                      ← requerido por PS para aceptar el ZIP en el admin
+  logo.png                        ← requerido por PS (32x32, puede ser placeholder)
   controllers/
     front/
       cron.php                    ← endpoint seguro para el cron job
 ```
 
-### Componente 1 — `recacor_periodocancel.php`
+> `config.xml` y `logo.png` son obligatorios para que PrestaShop 1.7 acepte el ZIP al subirlo desde el admin. Sin ellos el upload falla con error genérico.
 
-**Responsabilidades:**
-- `install()`: registra el hook `actionValidateOrder`
-- `uninstall()`: desregistra hooks
-- `hookActionValidateOrder($params)`: asigna estado 20 al pedido recién validado
+---
 
-**Por qué `actionValidateOrder`:** Es el hook que PrestaShop lanza en el momento en que un pedido es validado (pago confirmado), independientemente del método de pago. Es el punto más temprano y fiable para interceptar un pedido nuevo.
+## Componente 1 — `recacor_periodocancel.php`
 
-### Componente 2 — `controllers/front/cron.php`
+### `install()`
 
-**Responsabilidades:**
-- Valida el token de seguridad (`Tools::encrypt('recacor_periodocancel/cron')`)
-- Consulta la base de datos buscando pedidos elegibles para transición
-- Ejecuta el cambio de estado para cada uno
+1. Verifica que los estados 20 y 3 existen en la BD (`OrderState::existsInDatabase(20)` y `OrderState::existsInDatabase(3)`). Si alguno no existe, devuelve `false` con mensaje de error y aborta la instalación.
+2. Registra el hook `actionValidateOrder`.
 
-**Query de elegibilidad:**
+### `uninstall()`
+
+Desregistra hooks y elimina la configuración guardada (`RECACOR_PERIODO_CRON_TOKEN`).
+
+### `getContent()`
+
+Genera la página de configuración del módulo (accesible desde Admin → Módulos → Configurar). Muestra:
+- La URL completa del endpoint de cron con el token resuelto:
+  `https://<dominio>/module/recacor_periodocancel/cron?token=<valor>`
+- Instrucciones para configurar `ps_cronjobs` con esa URL (frecuencia: 1 min)
+
+Esta página es el único mecanismo disponible para que el administrador obtenga el token, ya que no hay acceso SSH/FTP.
+
+### `hookActionValidateOrder($params)`
+
+- Obtiene el objeto `Order` de `$params['order']`
+- **Guard:** solo actúa si `$order->current_state != 20` (evita doble asignación si el hook se dispara más de una vez para el mismo pedido)
+- Llama a `$order->setCurrentState(20)` para registrar el cambio en historial, disparar emails configurados y ejecutar hooks relacionados
+
+---
+
+## Componente 2 — `controllers/front/cron.php`
+
+### Validación de token
+
+Compara `Tools::getValue('token')` con `Tools::encrypt('recacor_periodocancel/cron')`.
+Si no coincide → responde HTTP 403 y termina.
+
+### Query de elegibilidad
+
 ```sql
 SELECT id_order
-FROM ps_orders o
+FROM [PREFIX]orders o
 WHERE current_state = 20
 AND (
   SELECT MAX(date_add)
-  FROM ps_order_history
+  FROM [PREFIX]order_history
   WHERE id_order = o.id_order
   AND id_order_state = 20
 ) <= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
 ```
 
-Lógica: pedidos cuyo estado actual es 20 Y cuya última entrada en ese estado ocurrió hace más de 10 minutos. Usar el MAX de `order_history` garantiza que si el estado 20 fue asignado varias veces, se toma la más reciente.
+> Usar `_DB_PREFIX_` en el código, nunca `ps_` literal. Instalaciones con prefijo distinto fallarían silenciosamente.
 
-### Cron
+**Por qué esta query es correcta:**
+- `current_state = 20` asegura que el pedido aún está en Periodo de Cancelación (si un admin lo movió manualmente a otro estado, ya no cumple esta condición y el cron lo ignora correctamente)
+- El subquery con `MAX(date_add)` toma la entrada más reciente al estado 20, cubriendo el caso de que el estado haya sido asignado múltiples veces
 
-- Herramienta: módulo nativo `ps_cronjobs` (instalado)
-- Frecuencia: cada 1 minuto
-- URL: `https://<dominio>/module/recacor_periodocancel/cron?token=<token>`
-- El token se genera con `Tools::encrypt('recacor_periodocancel/cron')` usando la `_COOKIE_KEY_` de la instalación
+### Procesamiento
 
-### Deploy
+Para cada pedido encontrado:
+- Instanciar `new Order((int)$row['id_order'])`
+- Llamar `$order->setCurrentState(3)` — esto registra historial, dispara emails configurados para el estado 3 y ejecuta hooks relacionados. **No usar UPDATE directo** ya que bypassa la lógica de PS y no enviaría el email de "Preparación en curso" al cliente si está configurado.
 
-1. Empaquetar el directorio del módulo como `.zip`
-2. Subir desde Admin → Módulos → "Subir un módulo"
-3. Instalar y activar
-4. Configurar `ps_cronjobs` con la URL del endpoint (frecuencia: 1 min)
+### Respuesta y logging
+
+- Éxito: responde con texto plano `OK — X pedidos procesados` (legible en logs de `ps_cronjobs`)
+- Token inválido: HTTP 403, cuerpo `Forbidden`
+- Excepción/error DB: capturar con `try/catch`, registrar con `PrestaShopLogger::addLog()` y responder `ERROR — ver logs PS`
 
 ---
 
 ## Estados de pedido involucrados
 
-| ID | Nombre               | Origen         |
-|----|----------------------|----------------|
+| ID | Nombre               | Origen              |
+|----|----------------------|---------------------|
 | 20 | Periodo de Cancelación | Custom (ya existe) |
 |  3 | Preparación en curso   | Nativo PS (ya existe) |
+
+---
+
+## Cron
+
+- **Herramienta:** módulo nativo `ps_cronjobs` (instalado)
+- **Frecuencia:** cada 1 minuto
+- **URL:** obtenida desde la página de configuración del módulo (Admin → Módulos → Configurar recacor_periodocancel)
+- **Token:** `Tools::encrypt('recacor_periodocancel/cron')` — usa `_COOKIE_KEY_` de la instalación. Se calcula una vez en `getContent()` y se muestra al admin.
+
+---
+
+## Deploy
+
+1. Empaquetar el directorio completo (incluyendo `config.xml` y `logo.png`) como `.zip`
+2. Admin → Módulos → "Subir un módulo" → seleccionar ZIP
+3. Instalar y activar
+4. Ir a Admin → Módulos → Configurar → copiar la URL del cron mostrada
+5. Configurar `ps_cronjobs` con esa URL, frecuencia 1 minuto
 
 ---
 
@@ -93,19 +140,24 @@ Lógica: pedidos cuyo estado actual es 20 Y cuya última entrada en ese estado o
 Cliente hace pedido
        ↓
 actionValidateOrder hook
-       ↓
+       ↓  (si current_state != 20)
 Estado → 20 (Periodo de Cancelación)
        ↓
 ps_cronjobs llama al endpoint cada minuto
        ↓
-¿Pedido en estado 20 hace >10 min? → SÍ → Estado → 3 (Preparación en curso)
-                                   → NO → No se hace nada
+¿current_state = 20 Y última entrada en estado 20 hace >10 min?
+  → SÍ → setCurrentState(3) → "Preparación en curso" + email + historial
+  → NO → sin acción
 ```
 
 ---
 
-## Lo que NO hace este módulo
+## Casos límite
 
-- No crea los estados (ya existen con IDs fijos)
-- No modifica el módulo `recacor` existente
-- No gestiona cancelaciones manuales (si el usuario cancela manualmente antes de los 10 min, el pedido sale del estado 20 y el cron lo ignora)
+| Caso | Comportamiento |
+|------|---------------|
+| Admin mueve el pedido a otro estado antes de 10 min | `current_state != 20` → cron lo ignora |
+| Hook `actionValidateOrder` se dispara dos veces | Guard `current_state != 20` evita doble asignación |
+| Estado 20 ó 3 no existe en la instalación | `install()` devuelve false con error, módulo no se activa |
+| Token de cron incorrecto | HTTP 403, sin procesamiento |
+| Error de BD en el cron | Excepción capturada, log en PS, respuesta `ERROR` |
