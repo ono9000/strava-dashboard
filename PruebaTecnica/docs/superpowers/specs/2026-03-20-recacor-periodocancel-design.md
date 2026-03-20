@@ -46,7 +46,7 @@ recacor_periodocancel/
 
 ### `uninstall()`
 
-Desregistra hooks y elimina la configuración guardada (`RECACOR_PERIODO_CRON_TOKEN`).
+Llama a `parent::uninstall()`, que desregistra los hooks automáticamente. No hay claves de `Configuration` que eliminar porque el token del cron se calcula dinámicamente con `Tools::encrypt()` y nunca se persiste en base de datos.
 
 ### `getContent()`
 
