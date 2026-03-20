@@ -42,4 +42,17 @@ class Recacor_Periodocancel extends Module
     {
         return parent::uninstall();
     }
+
+    public function hookActionValidateOrder($params)
+    {
+        /** @var Order $order */
+        $order = $params['order'];
+
+        // Guard: evitar doble asignación si el hook se dispara más de una vez
+        // PS actualiza $order->current_state en memoria tras setCurrentState(),
+        // por lo que esta comprobación funciona correctamente en llamadas repetidas.
+        if ((int)$order->current_state !== self::STATUS_CANCELACION) {
+            $order->setCurrentState(self::STATUS_CANCELACION);
+        }
+    }
 }
