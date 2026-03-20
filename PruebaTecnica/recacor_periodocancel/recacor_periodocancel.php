@@ -55,4 +55,42 @@ class Recacor_Periodocancel extends Module
             $order->setCurrentState(self::STATUS_CANCELACION);
         }
     }
+
+    public function getContent()
+    {
+        $token = Tools::encrypt('recacor_periodocancel/cron');
+        $cronUrl = $this->context->link->getModuleLink(
+            $this->name,
+            'cron',
+            ['token' => $token],
+            true
+        );
+
+        return '
+        <div class="panel">
+            <div class="panel-heading">
+                <i class="icon-cogs"></i> ' . $this->l('Configuración del Cron') . '
+            </div>
+            <div class="panel-body">
+                <p>'
+                    . $this->l('Configura el módulo') . ' <strong>ps_cronjobs</strong> '
+                    . $this->l('con la siguiente URL y frecuencia de 1 minuto:')
+                . '</p>
+                <div class="well">
+                    <code style="word-break:break-all;">' . htmlspecialchars($cronUrl) . '</code>
+                </div>
+                <p class="text-muted">'
+                    . $this->l('Esta URL transiciona automáticamente los pedidos en "Periodo de Cancelación" de más de 10 minutos a "Preparación en curso".')
+                . '</p>
+                <hr>
+                <h4>' . $this->l('Pasos para configurar ps_cronjobs:') . '</h4>
+                <ol>
+                    <li>' . $this->l('Ir a Admin → Módulos → buscar "Cron tasks manager" → Configurar') . '</li>
+                    <li>' . $this->l('Añadir nueva tarea con la URL de arriba') . '</li>
+                    <li>' . $this->l('Frecuencia: cada 1 minuto') . '</li>
+                    <li>' . $this->l('Guardar') . '</li>
+                </ol>
+            </div>
+        </div>';
+    }
 }
