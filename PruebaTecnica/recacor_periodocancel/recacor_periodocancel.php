@@ -26,7 +26,16 @@ class Recacor_Periodocancel extends Module
 
     public function install()
     {
-        return parent::install();
+        if (!OrderState::existsInDatabase(self::STATUS_CANCELACION, 'order_state') ||
+            !OrderState::existsInDatabase(self::STATUS_PREPARACION, 'order_state')) {
+            $this->_errors[] = $this->l(
+                'Los estados de pedido necesarios (ID 20 y ID 3) no existen en la base de datos.'
+            );
+            return false;
+        }
+
+        return parent::install()
+            && $this->registerHook('actionValidateOrder');
     }
 
     public function uninstall()
