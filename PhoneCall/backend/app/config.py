@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     google_maps_api_key: str = ""
 
-    jwt_secret: str = "dev-secret-change-in-production"
+    jwt_secret: str
     jwt_expire_minutes: int = 480
 
     operator_default_email: str = "admin@phonecall.com"

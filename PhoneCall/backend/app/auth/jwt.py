@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
+
 from jose import jwt, JWTError
 from app.config import settings
 
@@ -17,6 +19,6 @@ def create_token(
     return jwt.encode(payload, settings.jwt_secret, algorithm=ALGORITHM)
 
 
-def decode_token(token: str) -> dict:
+def decode_token(token: str) -> dict[str, Any]:
     # Raises jose.JWTError if the token is invalid or expired
     return jwt.decode(token, settings.jwt_secret, algorithms=[ALGORITHM])
