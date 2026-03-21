@@ -39,6 +39,7 @@ async def get_current_operator(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     result = await db.execute(select(Operator).where(Operator.id == operator_id))
     operator = result.scalar_one_or_none()
@@ -46,5 +47,6 @@ async def get_current_operator(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     return operator
