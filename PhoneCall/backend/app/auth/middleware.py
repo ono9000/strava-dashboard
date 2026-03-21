@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError
@@ -29,10 +31,11 @@ async def get_current_operator(
 ) -> Operator:
     try:
         payload = decode_token(credentials.credentials)
-        operator_id = payload.get("sub")
-        if operator_id is None:
+        operator_id_str = payload.get("sub")
+        if operator_id_str is None:
             raise JWTError("no sub in token")
-    except JWTError:
+        operator_id = uuid.UUID(operator_id_str)  # raises ValueError → caught as JWTError
+    except (JWTError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -42,6 +45,6 @@ async def get_current_operator(
     if operator is None or not operator.active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Operator not found",
+            detail="Invalid or expired token",
         )
     return operator

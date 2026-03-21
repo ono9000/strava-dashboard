@@ -66,7 +66,7 @@ async def client(db_session):
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_db, None)
 
 
 @pytest_asyncio.fixture(loop_scope="session")
