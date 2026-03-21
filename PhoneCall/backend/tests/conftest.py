@@ -10,3 +10,34 @@ async def simple_client():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:
         yield ac
+
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+
+TEST_DATABASE_URL = "postgresql+asyncpg://phonecall:phonecall@localhost:5432/phonecall_test"
+
+
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def engine():
+    from app.db.models import Base
+    eng = create_async_engine(TEST_DATABASE_URL, echo=False, poolclass=NullPool)
+    async with eng.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield eng
+    async with eng.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await eng.dispose()
+
+
+@pytest_asyncio.fixture
+async def db_session(engine):
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async with async_session() as session:
+        await session.begin()
+        yield session
+        try:
+            await session.rollback()
+        except Exception:
+            pass
