@@ -1,0 +1,56 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+
+  worker:
+    build: ./backend
+    command: python -m arq workers.settings.WorkerSettings
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./backend:/app
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: phonecall
+      POSTGRES_PASSWORD: phonecall
+      POSTGRES_DB: phonecall
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phonecall"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  dashboard:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "echo 'Dashboard not yet implemented' && sleep infinity"
+    profiles:
+      - dashboard
+
+volumes:
+  postgres_data:
