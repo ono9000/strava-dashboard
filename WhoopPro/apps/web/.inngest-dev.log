@@ -1,0 +1,18 @@
+{"time":"2026-03-21T23:39:36.0445984Z","level":"INFO","msg":"starting executor grpc server","svc":"executor","addr":":50053"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"starting event stream","backend":"redis"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"service starting","caller":"devserver","service":"devserver"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"autodiscovering locally hosted SDKs"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"service starting","caller":"runner","service":"runner"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"service starting","caller":"api","service":"api"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"service starting","caller":"executor","service":"executor"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"subscribing to function queue"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"starting server","caller":"api","addr":"0.0.0.0:8288"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"Executor started in assignedQueueShard Mode","queue_shard":"default"}
+{"time":"2026-03-21T23:39:36.0465964Z","level":"INFO","msg":"service starting","caller":"connect-gateway","service":"connect-gateway"}
+{"time":"2026-03-21T23:39:36.0501149Z","level":"INFO","msg":"starting connect gateway grpc server","caller":"connect-gateway","addr":":50052"}
+{"time":"2026-03-21T23:39:36.0559756Z","level":"INFO","msg":"subscribing to events","topic":"events"}
+{"time":"2026-03-21T23:39:49.5012091Z","level":"INFO","msg":"apps synced, disabling auto-discovery"}
+{"time":"2026-03-22T00:08:18.9693549Z","level":"INFO","msg":"publishing event","caller":"api","event_name":"briefing/generate.user","internal_id":"01KM9DY18MBD6JPKPKSFV853KZ","external_id":"01KM9DY18MBD6JPKPKSFV853KZ","event":{"id":"01KM9DY18MBD6JPKPKSFV853KZ","name":"briefing/generate.user","data":{"timezone":"UTC","userId":"6ccf245a-36ca-4ba5-863a-cd3328cb8582"},"ts":1774138098964}}
+{"time":"2026-03-22T00:08:19.2175851Z","level":"INFO","msg":"received event","event":"briefing/generate.user","event_id":"01KM9DY18MBD6JPKPKSFV853KZ","internal_id":"01KM9DY18MBD6JPKPKSFV853KZ"}
+{"time":"2026-03-22T00:08:19.2181049Z","level":"INFO","msg":"initializing fn","event":"briefing/generate.user","event_id":"01KM9DY18MBD6JPKPKSFV853KZ","internal_id":"01KM9DY18MBD6JPKPKSFV853KZ","function":"generate-briefing-for-user","function_id":"40a7e02f-7750-5586-8bb6-0b17067bc2d5"}
+{"time":"2026-03-22T00:08:19.9690112Z","level":"INFO","msg":"received event","event":"inngest/function.finished","event_id":"01KM9DY26VBTRF1M554EH5MZTB","internal_id":"01KM9DY26VXS2RYG97WJX68157"}
