@@ -36,6 +36,22 @@ The current `page.tsx` demo (scenario-based briefing) is replaced by the landing
 
 ---
 
+## Environment Variables
+
+Two env var categories are required after this sub-project. Existing vars are untouched.
+
+**New server-only vars** (already present in most deployments, just confirming):
+- `SUPABASE_URL` — already used by existing clients
+
+**New `NEXT_PUBLIC_` vars** (required for the browser Supabase client):
+- `NEXT_PUBLIC_SUPABASE_URL` — same value as `SUPABASE_URL`, but exposed to the browser bundle
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — same value as `SUPABASE_ANON_KEY`, but exposed to the browser bundle
+- `NEXT_PUBLIC_SITE_URL` — the app's public base URL (e.g. `https://axialday.com` or `http://localhost:3200`). Used to build absolute OAuth redirect URLs.
+
+These must be added to `.env.local` and to all deployment environment configs.
+
+---
+
 ## Auth Stack
 
 **Package:** `@supabase/ssr` — the official Supabase package for Next.js App Router. Manages sessions via cookies.
@@ -44,24 +60,35 @@ The current `page.tsx` demo (scenario-based briefing) is replaced by the landing
 
 | File | Purpose |
 |---|---|
-| `lib/supabase/server.ts` | Server component client — reads cookies via `next/headers` |
-| `lib/supabase/middleware.ts` | Middleware client — reads/writes cookies from `NextRequest`/`NextResponse` |
+| `lib/supabase/server.ts` | Server component + Route Handler client — reads/writes cookies via `next/headers` (`createServerClient`) |
+| `lib/supabase/middleware.ts` | Middleware client — reads/writes cookies from `NextRequest`/`NextResponse` (`createServerClient`) |
+| `lib/supabase/browser.ts` | Browser client for client components (`createBrowserClient`). Uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Singleton pattern to avoid multiple instances. |
 
 Existing `lib/supabase/public.ts` and `lib/supabase/admin.ts` are untouched. API routes continue using `resolveUserIdFromRequest` with Bearer tokens.
+
+**`DEV_USER_ID` runtime guard:** `resolveUserIdFromRequest` in `lib/auth/request-user.ts` must be updated to add a runtime guard: if `DEV_USER_ID` is set and `process.env.NODE_ENV !== 'development'`, throw an error at call time with the message `"DEV_USER_ID must not be set outside local development"`. This ensures a misconfigured staging/production environment fails loudly rather than silently accepting unauthenticated requests.
 
 ---
 
 ## Middleware
 
-File: `middleware.ts` (root of `src/`)
+File: `middleware.ts` (at `apps/web/src/middleware.ts`)
 
 **Rules:**
-- `/(app)/*` routes: no session → redirect to `/login`
+- `/dashboard` and any future `(app)` routes: no session → redirect to `/login`
 - `/login` and `/signup`: active session → redirect to `/dashboard`
-- All other routes: pass through
-- On every matched request: refresh the session token (Supabase SSR handles this with `updateSession`)
+- `/auth/callback`: **excluded from matcher** — must not run `updateSession` before the session is established, to avoid a race condition with the code exchange
+- All other routes: pass through (including `/api/*`, `/privacy`, `/`)
+- On every matched request: call `updateSession` (from `@supabase/ssr` via `lib/supabase/middleware.ts`) to refresh the session token
 
-**Matcher config:** applies to `/(app)/(.*)`, `/login`, `/signup`
+**Matcher config:**
+```ts
+export const config = {
+  matcher: ['/dashboard/:path*', '/login', '/signup'],
+}
+```
+
+As new `(app)` route segments are added in future sub-projects (e.g., `/onboarding`, `/settings`), their paths must be added to this matcher.
 
 ---
 
@@ -69,24 +96,36 @@ File: `middleware.ts` (root of `src/`)
 
 ### Login (`/login`)
 - Email + password form
-- Google OAuth button (`supabase.auth.signInWithOAuth({ provider: 'google' })`)
+- Google OAuth button:
+  ```ts
+  supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` }
+  })
+  ```
 - On success: redirect to `/dashboard`
 - On error: inline message under the form (no page reload)
 - Link to `/signup`
+- If `?error=auth_failed` is in the URL: show an amber banner at the top of the form ("Authentication failed. Please try again.")
 
 ### Signup (`/signup`)
 - Email + password form
-- Google OAuth button (same flow)
+- Google OAuth button (same `redirectTo` pattern as login)
 - On success: redirect to `/dashboard`
 - On error: inline message (email taken, weak password, etc.)
 - Link to `/login`
+- If `?error=auth_failed` is in the URL: show amber banner
 
 ### Google OAuth callback (`/auth/callback`)
-- Route handler: exchanges Supabase `code` param for a session
+- Route handler at `app/auth/callback/route.ts`
+- Uses the **server Supabase client** (`lib/supabase/server.ts`) — not the middleware client. Route Handlers use `next/headers` cookies, same as server components.
+- Exchanges the Supabase `code` query param for a session via `supabase.auth.exchangeCodeForSession(code)`
 - On success: redirect to `/dashboard`
 - On failure: redirect to `/login?error=auth_failed`
 
-**Note:** Supabase's Google OAuth (for login) is distinct from the Google Calendar OAuth (for data ingestion). They use different Google Cloud clients and different scopes. No conflict.
+**Note:** The `?error=auth_failed` param is the single, consistent error identifier used for all OAuth failures. Do not use `oauth_failed` or any other variant.
+
+**Note on Google OAuth:** Supabase's Google OAuth (for login) is a distinct OAuth app and flow from the Google Calendar OAuth (for data ingestion in sub-project 2). Different Google Cloud clients, different scopes. No conflict.
 
 ---
 
@@ -94,15 +133,33 @@ File: `middleware.ts` (root of `src/`)
 
 `/dashboard/page.tsx` is a **server component**.
 
-1. Reads `user.id` from the server-side Supabase session
-2. Queries `daily_briefings WHERE user_id = $1 AND signal_date = today`
-3. Branch on result:
-   - **Briefing exists for today** → render `BriefingView`
-   - **Briefing exists but is stale** (signal_date < today) → render `BriefingView` with a stale notice + refresh button
-   - **No briefing** → render `EmptyBriefingState`
-   - **Supabase error** → render error boundary message
+1. Reads `user.id` from the server-side Supabase session (via `lib/supabase/server.ts`)
+2. Reads the user's `timezone` from `profiles WHERE user_id = $1` (falls back to `'UTC'` if null)
+3. Computes `today` using `getTodayDateInTimeZone(timezone)` from `lib/time/timezone.ts`
+4. Queries `daily_briefings WHERE user_id = $1 ORDER BY signal_date DESC LIMIT 1`
+   - `signal_date` is a Postgres `DATE` column, stored as `YYYY-MM-DD`
+5. Branch on result:
+   - **Row exists and `signal_date === today`** → render `BriefingView`
+   - **Row exists and `signal_date < today`** (stale) → render `BriefingView` with an amber stale notice: "This briefing is from [date]." + refresh button (the refresh button re-triggers generate)
+   - **No row** → render `EmptyBriefingState`
+   - **Supabase error** → render inline error card
 
-The `GenerateBriefingButton` (client component) calls `POST /api/briefing/generate`, shows a loading state, and calls `router.refresh()` on success to re-trigger the server component fetch.
+The `timezone` value from step 2 is passed as a prop to `EmptyBriefingState` → `GenerateBriefingButton` so the generate call can include it.
+
+---
+
+## GenerateBriefingButton Auth & Async UX
+
+`GenerateBriefingButton` is a client component that calls `POST /api/briefing/generate`.
+
+**Auth:** On click, it calls `supabase.auth.getSession()` (using the browser Supabase client from `lib/supabase/browser.ts`) to obtain the current `access_token`, then attaches `Authorization: Bearer <access_token>` to the fetch request.
+
+**Request body:** `{ timezone }` — passes the user's timezone (received as a prop from the server component) so the Inngest job uses the correct local date.
+
+**Async UX:** The API route fires an Inngest event and immediately returns `{ ok: true, queued: true }`. Briefing generation is asynchronous — it is not complete when the response arrives. Therefore:
+- On API success (200 `queued: true`): show a confirmation message "Your briefing is being generated. Refresh in a moment." with a manual "Refresh" button that calls `router.refresh()`
+- Do NOT call `router.refresh()` automatically — it would re-render before the job completes, showing the same empty state
+- On API failure: show inline error with retry button
 
 ---
 
@@ -113,10 +170,11 @@ All components use existing CSS design tokens (`--accent`, `--foreground`, `--su
 | Component | Type | Description |
 |---|---|---|
 | `BriefingView` | Server | Extracted from current `page.tsx`. Receives `DailyBriefing` and renders all panels: scores, windows, suggested moves, adaptive loop. |
-| `EmptyBriefingState` | Server | Card shown when no briefing exists. Contains `GenerateBriefingButton`. |
-| `GenerateBriefingButton` | Client | Calls `POST /api/briefing/generate`. Handles loading/error states. Calls `router.refresh()` on success. |
-| `NavBar` | Server | Logo + user email + logout button. Logout calls `supabase.auth.signOut()` via a server action, then redirects to `/`. |
-| `AuthForm` | Client | Shared card wrapper for login/signup (logo, heading, Google button, divider, email/password fields, submit, error message, link to other page). |
+| `EmptyBriefingState` | Server | Card shown when no briefing exists. Contains `GenerateBriefingButton`. Passes `timezone` prop to it. |
+| `GenerateBriefingButton` | Client | Gets session token from browser Supabase client. Calls `POST /api/briefing/generate` with Bearer token and `{ timezone }` body. Shows queued confirmation + manual refresh button on success. |
+| `NavBar` | Server | Logo + user email. Contains `LogoutButton` as a child. |
+| `LogoutButton` | Client | `'use client'` component. On click calls a Server Action that runs `supabase.auth.signOut()` on the server client, then redirects to `/`. |
+| `AuthForm` | Client | Shared card wrapper for login/signup: logo, heading, Google button (absolute `redirectTo`), divider, email/password fields, submit, inline error message, optional amber banner for `?error=auth_failed`, link to other page. |
 
 ---
 
@@ -141,11 +199,12 @@ Uses the same design tokens and font variables. No heavy marketing content — t
 |---|---|
 | Wrong password / user not found | Inline error under form, no reload |
 | Email already taken on signup | Inline error under form |
-| Google OAuth failure | Redirect to `/login?error=oauth_failed`, banner at top of form |
+| Google OAuth failure | Redirect to `/login?error=auth_failed`, amber banner at top of form |
 | No briefing for today | `EmptyBriefingState` card + generate button |
-| Briefing from a previous day | `BriefingView` rendered with amber notice: "This briefing is from [date]." + refresh button |
-| Generate in progress | Button disabled, spinner, "Generating your briefing…" |
-| Generate failed | Error message inline, retry button |
+| Briefing from a previous day | `BriefingView` with amber notice: "This briefing is from [date]." + refresh button |
+| Generate API call in progress | Button disabled, spinner, "Generating…" |
+| Generate queued successfully | Confirmation: "Your briefing is being generated. Refresh in a moment." + manual Refresh button |
+| Generate API failed | Inline error, retry button |
 | Supabase fetch error on dashboard | Inline error card: "Something went wrong. Try refreshing." |
 
 ---
@@ -163,11 +222,19 @@ Uses the same design tokens and font variables. No heavy marketing content — t
 ## Acceptance Criteria
 
 - [ ] Unauthenticated user visiting `/dashboard` is redirected to `/login`
+- [ ] `/auth/callback` is excluded from the middleware matcher and from `updateSession`
 - [ ] User can sign up with email + password
 - [ ] User can log in with email + password
-- [ ] User can log in with Google
+- [ ] User can log in with Google (OAuth `redirectTo` uses an absolute URL from `NEXT_PUBLIC_SITE_URL`)
+- [ ] After Google login, `/auth/callback` exchanges the code using the server Supabase client and redirects to `/dashboard`
+- [ ] Google OAuth failure redirects to `/login?error=auth_failed` and shows an amber banner
 - [ ] Logged-in user on `/dashboard` sees their real briefing from `daily_briefings`
+- [ ] Dashboard query uses `ORDER BY signal_date DESC LIMIT 1` to fetch the most recent briefing
+- [ ] Dashboard uses the user's timezone from `profiles` (via `getTodayDateInTimeZone`) to compute today's date
 - [ ] If no briefing exists, user sees empty state with a working "Generate" button
-- [ ] Generate button produces a briefing and the page updates without a full reload
+- [ ] If the most recent briefing's `signal_date` is before today, user sees a stale notice with a refresh button
+- [ ] Generate button calls the API with a Bearer token (from `supabase.auth.getSession()`) and passes `{ timezone }` in the request body
+- [ ] After a successful generate (queued), user sees a confirmation message and a manual Refresh button — no automatic re-render
+- [ ] `DEV_USER_ID` present outside `NODE_ENV=development` causes a runtime error in `resolveUserIdFromRequest`
 - [ ] Logout redirects to `/`
 - [ ] Session persists across page refreshes
