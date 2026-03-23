@@ -21,14 +21,14 @@ export function GenerateBriefingButton({ timezone }: GenerateBriefingButtonProps
 
     try {
       const supabase = getSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      if (!token) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         setErrorMessage("Session expired. Please sign in again.");
         setState("error");
         return;
       }
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
 
       const response = await fetch("/api/briefing/generate", {
         method: "POST",

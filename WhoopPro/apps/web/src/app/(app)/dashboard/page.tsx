@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getTodayDateInTimeZone } from "@/lib/time/timezone";
 import { rowToBriefing, isBriefingStale, type BriefingRow } from "@/lib/dashboard/briefing-data";
@@ -11,7 +12,9 @@ interface ProfileRow {
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null; // layout handles redirect
+  if (!user) {
+    redirect("/login");
+  }
 
   // Load timezone from profile
   const { data: profileData } = await supabase
