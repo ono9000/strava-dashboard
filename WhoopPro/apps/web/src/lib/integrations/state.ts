@@ -8,18 +8,24 @@ export interface OAuthStatePayload {
   provider: IntegrationProvider;
   userId: string;
   issuedAt: number;
+  returnTo?: 'onboarding' | 'settings';
 }
 
 export function createOAuthStatePayload(
   provider: IntegrationProvider,
   userId: string,
+  returnTo?: 'onboarding' | 'settings',
 ): OAuthStatePayload {
-  return {
+  const payload: OAuthStatePayload = {
     state: randomUUID(),
     provider,
     userId,
     issuedAt: Date.now(),
   };
+  if (returnTo !== undefined) {
+    payload.returnTo = returnTo;
+  }
+  return payload;
 }
 
 export function encodeStatePayload(payload: OAuthStatePayload): string {
@@ -31,7 +37,7 @@ export function decodeStatePayload(value?: string): OAuthStatePayload | null {
 
   try {
     const decoded = Buffer.from(value, "base64url").toString("utf8");
-    const parsed = JSON.parse(decoded) as Partial<OAuthStatePayload>;
+    const parsed = JSON.parse(decoded) as Record<string, unknown>;
 
     if (
       typeof parsed.state === "string" &&
@@ -41,7 +47,17 @@ export function decodeStatePayload(value?: string): OAuthStatePayload | null {
         parsed.provider === "oura") &&
       typeof parsed.issuedAt === "number"
     ) {
-      return parsed as OAuthStatePayload;
+      const result: OAuthStatePayload = {
+        state: parsed.state,
+        provider: parsed.provider,
+        userId: parsed.userId,
+        issuedAt: parsed.issuedAt,
+      };
+      // Whitelist returnTo — only carry through known values
+      if (parsed.returnTo === 'onboarding' || parsed.returnTo === 'settings') {
+        result.returnTo = parsed.returnTo;
+      }
+      return result;
     }
   } catch {
     return null;
