@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> },
-): Promise<NextResponse> {
+): Promise<NextResponse | Response> {
   const { provider: providerValue } = await params;
 
   if (!isIntegrationProvider(providerValue)) {
@@ -23,22 +23,38 @@ export async function GET(
 
   // Try cookie auth first (browser/UI flow), then Bearer (API flow)
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id ?? await resolveUserIdFromRequest(request);
+  const { data: { user }, error: sessionError } = await supabase.auth.getUser();
+
+  let userId: string | undefined;
+  if (sessionError) {
+    return new Response("Unauthorized", { status: 401 });
+  } else if (user) {
+    userId = user.id;
+  } else {
+    // No session at all — try Bearer (API flow)
+    userId = await resolveUserIdFromRequest(request) ?? undefined;
+  }
 
   if (!userId) {
-    return new Response("Unauthorized", { status: 401 }) as unknown as NextResponse;
+    return new Response("Unauthorized", { status: 401 });
   }
 
   // Read and validate returnTo param
-  const rawReturnTo = new URL(request.url).searchParams.get('returnTo');
+  const rawReturnTo = request.nextUrl.searchParams.get('returnTo');
   const returnTo = (rawReturnTo === 'onboarding' || rawReturnTo === 'settings')
     ? rawReturnTo
     : undefined;
 
   const statePayload = createOAuthStatePayload(providerValue, userId, returnTo);
-  const authorizeUrl = buildAuthorizationUrl(providerValue, statePayload.state);
-  const response = NextResponse.redirect(authorizeUrl);
+
+  let authorizeUrl: URL;
+  try {
+    authorizeUrl = buildAuthorizationUrl(providerValue, statePayload.state);
+  } catch {
+    return new Response("Integration not configured.", { status: 500 });
+  }
+
+  const response = NextResponse.redirect(authorizeUrl.toString());
 
   response.cookies.set(OAUTH_STATE_COOKIE, encodeStatePayload(statePayload), {
     httpOnly: true,
