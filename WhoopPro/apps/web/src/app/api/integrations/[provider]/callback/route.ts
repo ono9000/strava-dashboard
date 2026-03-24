@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { exchangeAuthorizationCode, isIntegrationProvider } from "@/lib/integrations/oauth";
 import { saveIntegrationToken } from "@/lib/integrations/repository";
 import { decodeStatePayload, OAUTH_STATE_COOKIE } from "@/lib/integrations/state";
+import { resolveCallbackDestination } from "@/lib/integrations/redirect";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function clearStateCookieOn(response: NextResponse): void {
+  response.cookies.set(OAUTH_STATE_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+}
 
 export async function GET(
   request: NextRequest,
@@ -13,29 +24,45 @@ export async function GET(
   const { provider: providerValue } = await params;
 
   if (!isIntegrationProvider(providerValue)) {
-    return NextResponse.json({ error: "Unsupported provider." }, { status: 400 });
+    // Unknown provider — redirect to settings with error (no JSON)
+    return NextResponse.redirect(new URL('/settings/integrations?error=connect_failed', request.url));
   }
 
+  // Decode state cookie first — needed for returnTo in all error paths
+  const stateCookie = decodeStatePayload(request.cookies.get(OAUTH_STATE_COOKIE)?.value);
+  const returnTo = stateCookie?.returnTo;
+
+  // Provider returned an OAuth error
   const oauthError = request.nextUrl.searchParams.get("error");
   if (oauthError) {
-    return NextResponse.json({ error: `OAuth provider error: ${oauthError}` }, { status: 400 });
+    const destination = resolveCallbackDestination('error', returnTo, providerValue);
+    const response = NextResponse.redirect(new URL(destination, request.url));
+    clearStateCookieOn(response);
+    return response;
   }
 
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
-  const stateCookie = decodeStatePayload(request.cookies.get(OAUTH_STATE_COOKIE)?.value);
 
+  // Missing state cookie, code, or state param
   if (!code || !state || !stateCookie) {
-    return NextResponse.json({ error: "Missing OAuth state or authorization code." }, { status: 400 });
+    const destination = resolveCallbackDestination('error', returnTo, providerValue);
+    const response = NextResponse.redirect(new URL(destination, request.url));
+    clearStateCookieOn(response);
+    return response;
   }
 
+  // CSRF / expiry check
   const isValidState =
     stateCookie.provider === providerValue &&
     stateCookie.state === state &&
     Date.now() - stateCookie.issuedAt <= 10 * 60 * 1000;
 
   if (!isValidState) {
-    return NextResponse.json({ error: "Invalid or expired OAuth state." }, { status: 400 });
+    const destination = resolveCallbackDestination('error', returnTo, providerValue);
+    const response = NextResponse.redirect(new URL(destination, request.url));
+    clearStateCookieOn(response);
+    return response;
   }
 
   try {
@@ -46,24 +73,14 @@ export async function GET(
       token,
     });
 
-    const response = NextResponse.json({
-      ok: true,
-      provider: providerValue,
-      userId: stateCookie.userId,
-      message: "Integration connected and token stored.",
-    });
-
-    response.cookies.set(OAUTH_STATE_COOKIE, "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0,
-    });
-
+    const destination = resolveCallbackDestination('success', returnTo, providerValue);
+    const response = NextResponse.redirect(new URL(destination, request.url));
+    clearStateCookieOn(response);
     return response;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown OAuth callback failure.";
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    const destination = resolveCallbackDestination('error', returnTo, providerValue);
+    const response = NextResponse.redirect(new URL(destination, request.url));
+    clearStateCookieOn(response);
+    return response;
   }
 }
