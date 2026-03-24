@@ -10,6 +10,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    redirect("/onboarding");
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <NavBar email={user.email ?? ""} />
