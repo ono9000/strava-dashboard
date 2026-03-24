@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LogoutButton } from "@/components/LogoutButton";
 
 interface NavBarProps {
@@ -12,6 +13,12 @@ export function NavBar({ email }: NavBarProps) {
           Axial Day
         </p>
         <div className="flex items-center gap-4">
+          <Link
+            href="/settings/integrations"
+            className="text-xs text-[color-mix(in_srgb,var(--foreground)_60%,white)] hover:text-[var(--foreground)] transition-colors"
+          >
+            Settings
+          </Link>
           <span className="hidden text-xs text-[color-mix(in_srgb,var(--foreground)_60%,white)] sm:block">
             {email}
           </span>
