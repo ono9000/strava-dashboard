@@ -5,10 +5,11 @@ export async function middleware(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
   const path = request.nextUrl.pathname;
 
-  const isAppRoute = path.startsWith("/dashboard");
+  const isAppRoute = path.startsWith("/dashboard") || path.startsWith("/settings");
+  const isOnboarding = path === "/onboarding";
   const isAuthRoute = path === "/login" || path === "/signup";
 
-  if (isAppRoute && !user) {
+  if ((isAppRoute || isOnboarding) && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     const redirectResponse = NextResponse.redirect(loginUrl);
@@ -32,5 +33,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/login", "/signup", "/onboarding", "/settings/:path*"],
 };
