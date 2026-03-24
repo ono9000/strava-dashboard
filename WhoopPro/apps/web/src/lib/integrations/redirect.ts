@@ -5,7 +5,7 @@ export function resolveCallbackDestination(
 ): string {
   const base = returnTo === 'onboarding' ? '/onboarding' : '/settings/integrations';
   if (outcome === 'success') {
-    return `${base}?connected=${providerValue}`;
+    return `${base}?connected=${encodeURIComponent(providerValue)}`;
   }
   return `${base}?error=connect_failed`;
 }

@@ -7,6 +7,10 @@ import { resolveCallbackDestination } from "@/lib/integrations/redirect";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+function getBaseUrl(request: NextRequest): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
+}
+
 function clearStateCookieOn(response: NextResponse): void {
   response.cookies.set(OAUTH_STATE_COOKIE, "", {
     httpOnly: true,
@@ -25,7 +29,7 @@ export async function GET(
 
   if (!isIntegrationProvider(providerValue)) {
     // Unknown provider — redirect to settings with error (no JSON)
-    return NextResponse.redirect(new URL('/settings/integrations?error=connect_failed', request.url));
+    return NextResponse.redirect(new URL('/settings/integrations?error=connect_failed', getBaseUrl(request)));
   }
 
   // Decode state cookie first — needed for returnTo in all error paths
@@ -36,7 +40,7 @@ export async function GET(
   const oauthError = request.nextUrl.searchParams.get("error");
   if (oauthError) {
     const destination = resolveCallbackDestination('error', returnTo, providerValue);
-    const response = NextResponse.redirect(new URL(destination, request.url));
+    const response = NextResponse.redirect(new URL(destination, getBaseUrl(request)));
     clearStateCookieOn(response);
     return response;
   }
@@ -47,7 +51,7 @@ export async function GET(
   // Missing state cookie, code, or state param
   if (!code || !state || !stateCookie) {
     const destination = resolveCallbackDestination('error', returnTo, providerValue);
-    const response = NextResponse.redirect(new URL(destination, request.url));
+    const response = NextResponse.redirect(new URL(destination, getBaseUrl(request)));
     clearStateCookieOn(response);
     return response;
   }
@@ -60,7 +64,14 @@ export async function GET(
 
   if (!isValidState) {
     const destination = resolveCallbackDestination('error', returnTo, providerValue);
-    const response = NextResponse.redirect(new URL(destination, request.url));
+    const response = NextResponse.redirect(new URL(destination, getBaseUrl(request)));
+    clearStateCookieOn(response);
+    return response;
+  }
+
+  if (!stateCookie.userId) {
+    const destination = resolveCallbackDestination('error', returnTo, providerValue);
+    const response = NextResponse.redirect(new URL(destination, getBaseUrl(request)));
     clearStateCookieOn(response);
     return response;
   }
@@ -74,12 +85,12 @@ export async function GET(
     });
 
     const destination = resolveCallbackDestination('success', returnTo, providerValue);
-    const response = NextResponse.redirect(new URL(destination, request.url));
+    const response = NextResponse.redirect(new URL(destination, getBaseUrl(request)));
     clearStateCookieOn(response);
     return response;
   } catch {
     const destination = resolveCallbackDestination('error', returnTo, providerValue);
-    const response = NextResponse.redirect(new URL(destination, request.url));
+    const response = NextResponse.redirect(new URL(destination, getBaseUrl(request)));
     clearStateCookieOn(response);
     return response;
   }
